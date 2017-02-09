@@ -14,14 +14,21 @@ use dota::demo::{EDemoCommands, CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDe
 // use dota::netmessages::{CSVCMsg_ServerInfo, CCLCMsg_ClientInfo};
 use dota::usermessages::CUserMessageSayText2;
 
-use std::io::{Result, Error};
+use std::io::{Result, Error, Read, ErrorKind};
+use std::path::Path;
+use std::fs::File;
 
 pub struct Replay {}
 
 impl Replay {
-    pub fn new(bytes: Vec<u8>) -> Replay {
+    pub fn new(bytes: Vec<u8>) -> Result<Replay> {
         const HEADER_SOURCE_2: &'static [u8; 8] = b"PBDEMS2\0";
-        assert_eq!(HEADER_SOURCE_2, &bytes[0..8]);
+        if HEADER_SOURCE_2 != &bytes[0..8] {
+            return Err(Error::new(ErrorKind::InvalidData,
+                                  format!("Wrong header: expect {:?}, found {:?}",
+                                          HEADER_SOURCE_2,
+                                          &bytes[0..8])));
+        }
 
         let mut stream = CodedInputStream::from_bytes(&bytes[16..]);
 
@@ -51,7 +58,15 @@ impl Replay {
             })
             .collect::<Vec<()>>();
 
-        Replay {}
+        Ok(Replay {})
+    }
+
+    pub fn from_file(path: &Path) -> Result<Replay> {
+        let mut file = File::open(path)?;
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes)?;
+
+        Replay::new(bytes)
     }
 }
 
