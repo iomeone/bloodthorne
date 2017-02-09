@@ -250,11 +250,11 @@ mod tests {
         assert_eq!(b.read_bytes(2).unwrap(), [0b0000_0101, 1]);
     }
 
-    // #[test]
-    // fn test_read_ubitvarint() {
-    //     let mut b = BitStream::new(vec![0b0000_0101, 1, 2]);
+    #[test]
+    fn test_read_ubitvarint_simple() {
+        let mut b = BitStream::new(vec![0b0010_00100]);
 
-    //     assert_eq!(b.read_bytes(2)., [0b0000_0101, 1]);
-    // }
+        assert_eq!(b.read_ubitvarint().unwrap(), 4);
+    }
 
 }
