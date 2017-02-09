@@ -147,4 +147,40 @@ mod tests {
         }
     }
 
+    #[test]
+    fn test_read_several_bits() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        assert_eq!(b.read_bits(4).unwrap(), 0b0101);
+    }
+
+    #[test]
+    fn test_read_too_many_bits() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        match b.read_bits(9) {
+            Err(err) => assert_eq!(err.kind(), ErrorKind::UnexpectedEof),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_read_zero_bits() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        assert_eq!(b.read_bits(0).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_read_zero_bits_after_reading_some_bits() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        assert_eq!(b.read_bits(2).unwrap(), 0b01);
+        assert_eq!(b.read_bits(0).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_remaining_bits_after_reading_some_bits() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        b.read_bits(5).ok();
+
+        assert_eq!(b.remaining_bits(), 3);
+    }
+
 }
