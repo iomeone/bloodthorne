@@ -102,3 +102,15 @@ impl BitStream {
         self.buffer.len() - self.position
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use bitstream::BitStream;
+
+    #[test]
+    fn test_read_one_bit() {
+        let mut b = BitStream::new(vec![0b0000_0001]);
+        assert_eq!(b.read_bits(1).unwrap(), 1);
+    }
+
+}

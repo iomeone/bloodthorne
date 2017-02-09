@@ -14,7 +14,7 @@ use dota::demo::{EDemoCommands, CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDe
 // use dota::netmessages::{CSVCMsg_ServerInfo, CCLCMsg_ClientInfo};
 use dota::usermessages::CUserMessageSayText2;
 
-use std::io::{Read, Result, Error};
+use std::io::{Result, Error};
 
 pub struct Replay {}
 
