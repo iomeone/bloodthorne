@@ -190,6 +190,7 @@ enum PacketEntity {
 }
 
 fn entities_from_packet(packet: &CDemoPacket) -> Vec<Result<PacketEntity>> {
+    println!("Data: {:?}", packet.data);
     let packet_datas = PacketData::from_packet(packet).expect("Error getting packet data");
     packet_datas.iter()
         .map(|d| {
