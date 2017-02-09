@@ -224,7 +224,6 @@ impl PacketData {
 
     fn from_packet(packet: &CDemoPacket) -> Result<Vec<PacketData>> {
         let data = packet.get_data().to_vec();
-        println!("{:?}", data);
         let mut bitstream = BitStream::new(data);
 
         let mut res = Vec::new();

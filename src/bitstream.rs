@@ -252,14 +252,14 @@ mod tests {
 
     #[test]
     fn test_read_ubitvarint_simple() {
-        let mut b = BitStream::new(vec![0b0010_0010]);
+        let mut b = BitStream::new(vec![68, 2]);
 
         assert_eq!(b.read_ubitvarint().unwrap(), 4);
     }
 
     #[test]
     fn test_read_u32var() {
-        let mut b = BitStream::new(vec![68, 2, 130, 173, 0, 8, 0, 10, 0, 12]);
+        let mut b = BitStream::new(vec![68, 2, 130, 173, 0, 8, 0]);
         b.read_ubitvarint().ok();
 
         assert_eq!(b.read_u32var().unwrap(), 9);
