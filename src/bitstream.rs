@@ -106,7 +106,7 @@ impl BitStream {
 #[cfg(test)]
 mod tests {
     use bitstream::BitStream;
-    use std::io::{Error, ErrorKind};
+    use std::io::ErrorKind;
 
     #[test]
     fn test_read_one_bit() {
@@ -129,7 +129,7 @@ mod tests {
     }
 
     #[test]
-    fn test_read_all_bit_by_bit_EOF() {
+    fn test_read_all_bit_by_bit_eof() {
         let mut b = BitStream::new(vec![0b0000_0101]);
         assert_eq!(b.read_bits(1).unwrap(), 1);
         assert_eq!(b.read_bits(1).unwrap(), 0);
@@ -163,6 +163,7 @@ mod tests {
     }
 
     #[test]
+    // Should be idempotent
     fn test_read_zero_bits() {
         let mut b = BitStream::new(vec![0b0000_0101]);
         assert_eq!(b.read_bits(0).unwrap(), 0);
@@ -182,5 +183,78 @@ mod tests {
 
         assert_eq!(b.remaining_bits(), 3);
     }
+
+    #[test]
+    fn test_remaining_bits() {
+        let b = BitStream::new(vec![0b0000_0101]);
+        assert_eq!(b.remaining_bits(), 8);
+    }
+
+    #[test]
+    fn test_remaining_bits_after_reading_zero_bits() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        b.read_bits(0).ok();
+
+        assert_eq!(b.remaining_bits(), 8);
+    }
+
+    #[test]
+    fn test_next_byte() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+
+        assert_eq!(b.next_byte().unwrap(), 0b0000_0101);
+        assert_eq!(b.remaining_bits(), 0);
+    }
+
+    #[test]
+    fn test_next_byte_eof() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        b.next_byte().ok();
+
+        match b.next_byte() {
+            Err(err) => assert_eq!(err.kind(), ErrorKind::UnexpectedEof),
+            _ => panic!(),
+        }
+    }
+
+    #[test]
+    fn test_remaining_bytes_after_next_byte() {
+        let mut b = BitStream::new(vec![0b0000_0101, 1, 2]);
+        b.next_byte().ok();
+
+        assert_eq!(b.remaining_bytes(), 2);
+    }
+
+    #[test]
+    fn test_remaining_bits_after_next_byte() {
+        let mut b = BitStream::new(vec![0b0000_0101, 1, 2]);
+        b.next_byte().ok();
+
+        assert_eq!(b.remaining_bits(), 2 * 8);
+    }
+
+    #[test]
+    fn test_remaining_bits_after_complex_read() {
+        let mut b = BitStream::new(vec![0b0000_0101, 1]);
+        b.next_byte().ok();
+        b.read_bits(2).ok();
+        b.read_bits(3).ok();
+
+        assert_eq!(b.remaining_bits(), 3);
+    }
+
+    #[test]
+    fn test_read_bytes() {
+        let mut b = BitStream::new(vec![0b0000_0101, 1, 2]);
+
+        assert_eq!(b.read_bytes(2).unwrap(), [0b0000_0101, 1]);
+    }
+
+    // #[test]
+    // fn test_read_ubitvarint() {
+    //     let mut b = BitStream::new(vec![0b0000_0101, 1, 2]);
+
+    //     assert_eq!(b.read_bytes(2)., [0b0000_0101, 1]);
+    // }
 
 }
