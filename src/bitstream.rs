@@ -106,11 +106,45 @@ impl BitStream {
 #[cfg(test)]
 mod tests {
     use bitstream::BitStream;
+    use std::io::{Error, ErrorKind};
 
     #[test]
     fn test_read_one_bit() {
         let mut b = BitStream::new(vec![0b0000_0001]);
         assert_eq!(b.read_bits(1).unwrap(), 1);
+    }
+
+    #[test]
+    fn test_read_all_bit_by_bit() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        assert_eq!(b.read_bits(1).unwrap(), 1);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+        assert_eq!(b.read_bits(1).unwrap(), 1);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+    }
+
+    #[test]
+    fn test_read_all_bit_by_bit_EOF() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+        assert_eq!(b.read_bits(1).unwrap(), 1);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+        assert_eq!(b.read_bits(1).unwrap(), 1);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+        assert_eq!(b.read_bits(1).unwrap(), 0);
+
+        match b.read_bits(1) {
+            Err(err) => assert_eq!(err.kind(), ErrorKind::UnexpectedEof),
+            _ => panic!(),
+        }
     }
 
 }
