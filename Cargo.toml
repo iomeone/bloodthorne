@@ -1,0 +1,8 @@
+[package]
+name = "bloodthorne"
+version = "0.1.0"
+authors = ["philippe gaultier <philigaultier@gmail.com>"]
+
+[dependencies]
+protobuf = "1.2.1"
+snap = "0.2"
