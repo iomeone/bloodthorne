@@ -9,7 +9,7 @@ use bitstream::BitStream;
 use dota::demo::{EDemoCommands, CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket,
                  CDemoSendTables, CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd,
                  CDemoCustomData, CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame,
-                 CDemoSpawnGroups};
+                 CDemoSpawnGroups, CDemoSyncTick};
 // use dota::networkbasetypes::CNETMsg_Tick;
 // use dota::netmessages::{CSVCMsg_ServerInfo, CCLCMsg_ClientInfo};
 use dota::usermessages::CUserMessageSayText2;
@@ -18,47 +18,66 @@ use std::io::{Result, Error, Read, ErrorKind};
 use std::path::Path;
 use std::fs::File;
 
-pub struct Replay {}
+trait Callback {
+    fn implements(&self) -> bool {
+        true
+    }
+
+    fn on(&self) {}
+}
+
+impl Callback for CDemoFileHeader {
+    fn on(&self) {
+        println!("Here is a file info: {}", self.get_server_name());
+    }
+}
+
+struct CDemoError;
+struct CDemoStop;
+
+macro_rules! impl_no_call(
+    ( $($obj:ty), *) => (
+        $(
+            impl Callback for $obj {
+                fn implements(&self) -> bool {
+                    false
+                }
+            }
+        )*
+    )
+);
+
+macro_rules! call_if_implements(
+    ($obj:expr) => (
+        if $obj.implements() {
+            $obj.on();
+        }
+    )
+);
+
+impl_no_call!(CDemoFileInfo,
+              CDemoPacket,
+              CDemoFullPacket,
+              CDemoSendTables,
+              CDemoClassInfo,
+              CDemoStringTables,
+              CDemoConsoleCmd,
+              CDemoCustomData,
+              CDemoCustomDataCallbacks,
+              CDemoUserCmd,
+              CDemoSaveGame,
+              CDemoSpawnGroups,
+              CDemoSyncTick,
+              CDemoError,
+              CDemoStop);
+
+pub struct Replay {
+    bytes: Vec<u8>,
+}
 
 impl Replay {
     pub fn new(bytes: Vec<u8>) -> Result<Replay> {
-        const HEADER_SOURCE_2: &'static [u8; 8] = b"PBDEMS2\0";
-        if HEADER_SOURCE_2 != &bytes[0..8] {
-            return Err(Error::new(ErrorKind::InvalidData,
-                                  format!("Wrong header: expect {:?}, found {:?}",
-                                          HEADER_SOURCE_2,
-                                          &bytes[0..8])));
-        }
-
-        let mut stream = CodedInputStream::from_bytes(&bytes[16..]);
-
-        (0..)
-            .map(|_| OuterMessage::new(&mut stream).expect("Error OuterMessage"))
-            .take_while(|m| m.kind > 0)
-            .map(|m| from_message(&m).expect("Error from_message"))
-            .filter(|c| match *c {
-                DemoCommand::SignonPacket(_) |
-                DemoCommand::Packet(_) => true,
-                _ => false,
-            })
-            .map(|c| match c {
-                DemoCommand::SignonPacket(p) |
-                DemoCommand::Packet(p) => p,
-                _ => unreachable!(), 
-            })
-            .map(|p| entities_from_packet(&p))
-            .flat_map(|entities| entities.into_iter())
-            .filter(|e| e.is_ok())
-            .map(|e| e.unwrap())
-            .map(|e| match e {
-                PacketEntity::ChatMessage(ref c) => {
-                    println!("{} says {}", c.get_param1(), c.get_param2());
-                }
-                _ => {}
-            })
-            .collect::<Vec<()>>();
-
-        Ok(Replay {})
+        Ok(Replay { bytes: bytes })
     }
 
     pub fn from_file(path: &Path) -> Result<Replay> {
@@ -67,6 +86,133 @@ impl Replay {
         file.read_to_end(&mut bytes)?;
 
         Replay::new(bytes)
+    }
+
+    pub fn parse(&mut self) -> Result<()> {
+        const HEADER_SOURCE_2: &'static [u8; 8] = b"PBDEMS2\0";
+        if HEADER_SOURCE_2 != &self.bytes[0..8] {
+            return Err(Error::new(ErrorKind::InvalidData,
+                                  format!("Wrong header: expect {:?}, found {:?}",
+                                          HEADER_SOURCE_2,
+                                          &self.bytes[0..8])));
+        }
+
+        let mut stream = CodedInputStream::from_bytes(&self.bytes[16..]);
+
+        loop {
+            let outer_message = OuterMessage::new(&mut stream)?;
+            Replay::handle_outer_message_by_type(&outer_message).unwrap();
+
+            if outer_message.kind == 0 {
+                return Ok(());
+            }
+
+            if outer_message.kind == -1 {
+                return Err(Error::new(ErrorKind::Other, "EDemoCommands::DEM_Error found"));
+            }
+        }
+
+        // (0..)
+        //     .map(|_|.expect("Error OuterMessage"))
+        //     .take_while(|m| m.kind > 0)
+        //     .map(|m| from_message(&m).expect("Error from_message"))
+        //     .filter(|c| match *c {
+        //         DemoCommand::SignonPacket(_) |
+        //         DemoCommand::Packet(_) => true,
+        //         _ => false,
+        //     })
+        //     .map(|c| match c {
+        //         DemoCommand::SignonPacket(p) |
+        //         DemoCommand::Packet(p) => p,
+        //         _ => unreachable!(),
+        //     })
+        //     .map(|p| entities_from_packet(&p))
+        //     .flat_map(|entities| entities.into_iter())
+        //     .filter(|e| e.is_ok())
+        //     .map(|e| e.unwrap())
+        //     .map(|e| match e {
+        //         PacketEntity::ChatMessage(ref c) => {
+        //             println!("{} says {}", c.get_param1(), c.get_param2());
+        //         }
+        //         _ => {}
+        //     })
+        //     .collect::<Vec<()>>();
+
+        Ok(())
+    }
+
+    fn handle_outer_message_by_type(m: &OuterMessage) -> Result<()> {
+        match m.kind {
+            -1 => {
+                let c = CDemoError {};
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_Error
+            0 => {
+                let c = CDemoStop {};
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_Stop
+            1 => {
+                let c = protobuf::parse_from_bytes::<CDemoFileHeader>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_FileHeader
+            2 => {
+                let c = protobuf::parse_from_bytes::<CDemoFileInfo>(&m.data)?;
+                call_if_implements!(c);
+            } // DemoCommands::DEM_FileInfo
+            3 => {
+                let c = protobuf::parse_from_bytes::<CDemoSyncTick>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_SyncTick
+            4 => {
+                let c = protobuf::parse_from_bytes::<CDemoSendTables>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_SendTables
+            5 => {
+                let c = protobuf::parse_from_bytes::<CDemoClassInfo>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_ClassInfo
+            6 => {
+                let c = protobuf::parse_from_bytes::<CDemoStringTables>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_StringTables
+            7 | 8 => {
+                let c = protobuf::parse_from_bytes::<CDemoPacket>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_SignonPacket // EDemoCommands::DEM_Packet
+            9 => {
+                let c = protobuf::parse_from_bytes::<CDemoConsoleCmd>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_ConsoleCmd
+            10 => {
+                let c = protobuf::parse_from_bytes::<CDemoCustomData>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_CustomData
+            11 => {
+                let c = protobuf::parse_from_bytes::<CDemoCustomDataCallbacks>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_CustomDataCallbacks
+            12 => {
+                let c = protobuf::parse_from_bytes::<CDemoUserCmd>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_UserCmd
+            13 => {
+                let c = protobuf::parse_from_bytes::<CDemoFullPacket>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_FullPacket
+            14 => {
+                let c = protobuf::parse_from_bytes::<CDemoSaveGame>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_SaveGame
+            15 => {
+                let c = protobuf::parse_from_bytes::<CDemoSpawnGroups>(&m.data)?;
+                call_if_implements!(c);
+            } // EDemoCommands::DEM_SpawnGroups
+            16 => {} // EDemoCommands::DEM_Max
+            64 => {} // EDemoCommands::DEM_IsCompressed
+            _ => {}
+        };
+
+        Ok(())
     }
 }
 
@@ -108,117 +254,22 @@ impl OuterMessage {
     }
 }
 
-enum DemoCommand {
-    Error,
-    Stop,
-    FileHeader(CDemoFileHeader),
-    FileInfo(CDemoFileInfo),
-    SyncTick,
-    SendTables(CDemoSendTables),
-    ClassInfo(CDemoClassInfo),
-    SignonPacket(CDemoPacket),
-    Packet(CDemoPacket),
-    ConsoleCmd(CDemoConsoleCmd),
-    StringTables(CDemoStringTables),
-    CustomData(CDemoCustomData),
-    CustomDataCallbacks(CDemoCustomDataCallbacks),
-    UserCmd(CDemoUserCmd),
-    FullPacket(CDemoFullPacket),
-    SaveGame(CDemoSaveGame),
-    SpawnGroups(CDemoSpawnGroups),
-    Max,
-    IsCompressed,
-    Other(i32),
-}
 
-fn from_message(message: &OuterMessage) -> Result<DemoCommand> {
-    match message.kind {
-            -1 => Ok(DemoCommand::Error), // EDemoCommands::DEM_Error
-            0 => Ok(DemoCommand::Stop), // EDemoCommands::DEM_Stop
-            1 => {
-                protobuf::parse_from_bytes::<CDemoFileHeader>(&message.data)
-                    .map(DemoCommand::FileHeader)
-            } // EDemoCommands::DEM_FileHeader
-            2 => {
-                protobuf::parse_from_bytes::<CDemoFileInfo>(&message.data)
-                    .map(DemoCommand::FileInfo)
-            } // DemoCommands::DEM_FileInfo
-            3 => Ok(DemoCommand::SyncTick), // EDemoCommands::DEM_SyncTick
-            4 => {
-                protobuf::parse_from_bytes::<CDemoSendTables>(&message.data)
-                    .map(DemoCommand::SendTables)
-            } // EDemoCommands::DEM_SendTables
-            5 => {
-                protobuf::parse_from_bytes::<CDemoClassInfo>(&message.data)
-                    .map(DemoCommand::ClassInfo)
-            } // EDemoCommands::DEM_ClassInfo
-            6 => {
-                protobuf::parse_from_bytes::<CDemoStringTables>(&message.data)
-                    .map(DemoCommand::StringTables)
-            } // EDemoCommands::DEM_StringTables
-            7 => {
-                protobuf::parse_from_bytes::<CDemoPacket>(&message.data)
-                    .map(DemoCommand::SignonPacket)
-            } // EDemoCommands::DEM_SignonPacket
-            8 => {
-                protobuf::parse_from_bytes::<CDemoPacket>(&message.data)
-                    .map(DemoCommand::Packet)
-            } // EDemoCommands::DEM_Packet
-            9 => {
-                protobuf::parse_from_bytes::<CDemoConsoleCmd>(&message.data)
-                    .map(DemoCommand::ConsoleCmd)
-            } // EDemoCommands::DEM_ConsoleCmd
-            10 => {
-                protobuf::parse_from_bytes::<CDemoCustomData>(&message.data)
-                    .map(DemoCommand::CustomData)
-            } // EDemoCommands::DEM_CustomData
-            11 => {
-                protobuf::parse_from_bytes::<CDemoCustomDataCallbacks>(&message.data)
-                    .map(DemoCommand::CustomDataCallbacks)
-            } // EDemoCommands::DEM_CustomDataCallbacks
-            12 => {
-                protobuf::parse_from_bytes::<CDemoUserCmd>(&message.data)
-                    .map(DemoCommand::UserCmd)
-            } // EDemoCommands::DEM_UserCmd
-            13 => {
-                protobuf::parse_from_bytes::<CDemoFullPacket>(&message.data)
-                    .map(DemoCommand::FullPacket)
-            } // EDemoCommands::DEM_FullPacket
-            14 => {
-                protobuf::parse_from_bytes::<CDemoSaveGame>(&message.data)
-                    .map(DemoCommand::SaveGame)
-            } // EDemoCommands::DEM_SaveGame
-            15 => {
-                protobuf::parse_from_bytes::<CDemoSpawnGroups>(&message.data)
-                    .map(DemoCommand::SpawnGroups)
-            } // EDemoCommands::DEM_SpawnGroups
-            16 => Ok(DemoCommand::Max), // EDemoCommands::DEM_Max
-            64 => Ok(DemoCommand::IsCompressed), // EDemoCommands::DEM_IsCompressed
-            other => Ok(DemoCommand::Other(other)),
-        }
-        .map_err(Error::from)
-}
-
-enum PacketEntity {
-    ChatMessage(CUserMessageSayText2),
-    Other(u32),
-}
-
-fn entities_from_packet(packet: &CDemoPacket) -> Vec<Result<PacketEntity>> {
-    let packet_datas = PacketData::from_packet(packet).expect("Error getting packet data");
-    packet_datas.iter()
-        .map(|d| {
-            match d.kind {
-                    118 => {
-                        protobuf::parse_from_bytes::<CUserMessageSayText2>(&d.data)
-                            .map(PacketEntity::ChatMessage)
-                    }
-                    v => Ok(PacketEntity::Other(v)),
-                }
-                .map_err(Error::from)
-        })
-        .collect()
-}
+// fn entities_from_packet(packet: &CDemoPacket) -> Vec<Result<PacketEntity>> {
+//     let packet_datas = PacketData::from_packet(packet).expect("Error getting packet data");
+//     packet_datas.iter()
+//         .map(|d| {
+//             match d.kind {
+//                     118 => {
+//                         protobuf::parse_from_bytes::<CUserMessageSayText2>(&d.data)
+//                             .map(PacketEntity::ChatMessage)
+//                     }
+//                     v => Ok(PacketEntity::Other(v)),
+//                 }
+//                 .map_err(Error::from)
+//         })
+//         .collect()
+// }
 
 struct PacketData {
     kind: u32,
