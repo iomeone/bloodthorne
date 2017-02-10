@@ -18,6 +18,9 @@ use std::io::{Result, Error, Read, ErrorKind};
 use std::path::Path;
 use std::fs::File;
 
+struct CDemoError;
+struct CDemoStop;
+
 trait Callback {
     fn implements(&self) -> bool {
         true
@@ -26,15 +29,7 @@ trait Callback {
     fn on(&self) {}
 }
 
-impl Callback for CDemoFileHeader {
-    fn on(&self) {
-        println!("Here is a file info: {}", self.get_server_name());
-    }
-}
-
-struct CDemoError;
-struct CDemoStop;
-
+#[macro_export]
 macro_rules! impl_no_call(
     ( $($obj:ty), *) => (
         $(
@@ -55,21 +50,27 @@ macro_rules! call_if_implements(
     )
 );
 
-impl_no_call!(CDemoFileInfo,
-              CDemoPacket,
-              CDemoFullPacket,
-              CDemoSendTables,
-              CDemoClassInfo,
-              CDemoStringTables,
-              CDemoConsoleCmd,
-              CDemoCustomData,
-              CDemoCustomDataCallbacks,
-              CDemoUserCmd,
-              CDemoSaveGame,
-              CDemoSpawnGroups,
-              CDemoSyncTick,
-              CDemoError,
-              CDemoStop);
+// impl Callback for CDemoFileHeader {
+//     fn on(&self) {
+//         println!("Here is a file info: {}", self.get_server_name());
+//     }
+// }
+
+// impl_no_call!(CDemoFileInfo,
+//               CDemoPacket,
+//               CDemoFullPacket,
+//               CDemoSendTables,
+//               CDemoClassInfo,
+//               CDemoStringTables,
+//               CDemoConsoleCmd,
+//               CDemoCustomData,
+//               CDemoCustomDataCallbacks,
+//               CDemoUserCmd,
+//               CDemoSaveGame,
+//               CDemoSpawnGroups,
+//               CDemoSyncTick,
+//               CDemoError,
+//               CDemoStop);
 
 pub struct Replay {
     bytes: Vec<u8>,
