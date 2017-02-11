@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 extern crate protobuf;
 mod bitstream;
 pub mod callback;

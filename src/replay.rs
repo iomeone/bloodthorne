@@ -9,10 +9,10 @@ use bitstream::BitStream;
 use dota::demo::{EDemoCommands, CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket,
                  CDemoSendTables, CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd,
                  CDemoCustomData, CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame,
-                 CDemoSpawnGroups, CDemoSyncTick};
+                 CDemoSpawnGroups};
 // use dota::networkbasetypes::CNETMsg_Tick;
 // use dota::netmessages::{CSVCMsg_ServerInfo, CCLCMsg_ClientInfo};
-use dota::usermessages::CUserMessageSayText2;
+// use dota::usermessages::CUserMessageSayText2;
 
 use callback::Callbacks;
 
@@ -25,7 +25,12 @@ macro_rules! call_if_exists {
         if let Some(ref cb) = $f {
             cb($c);
         }
-    }
+    };
+    ($f:expr) => {
+        if let Some(ref cb) = $f {
+            cb();
+        }
+    };
 }
 
 pub struct Replay {
@@ -65,21 +70,21 @@ impl Replay {
             self.handle_outer_message_by_type(&outer_message).unwrap();
 
             if outer_message.kind == 0 {
+                // Stop
                 return Ok(());
             }
 
             if outer_message.kind == -1 {
+                // Error
                 return Err(Error::new(ErrorKind::Other, "EDemoCommands::DEM_Error found"));
             }
         }
-
-        Ok(())
     }
 
     fn handle_outer_message_by_type(&self, m: &OuterMessage) -> Result<()> {
         match m.kind {
-            -1 => {} // EDemoCommands::DEM_Error
-            0 => {} // EDemoCommands::DEM_Stop
+            -1 => call_if_exists!(self.callbacks.on_CDemoError), // EDemoCommands::DEM_Error
+            0 => call_if_exists!(self.callbacks.on_CDemoStop),  // EDemoCommands::DEM_Stop
             1 => {
                 let c = protobuf::parse_from_bytes::<CDemoFileHeader>(&m.data)?;
                 call_if_exists!(self.callbacks.on_CDemoFileHeader, c);
@@ -88,57 +93,58 @@ impl Replay {
                 let c = protobuf::parse_from_bytes::<CDemoFileInfo>(&m.data)?;
                 call_if_exists!(self.callbacks.on_CDemoFileInfo, c);
             } // DemoCommands::DEM_FileInfo
-            3 => {
-                let c = protobuf::parse_from_bytes::<CDemoSyncTick>(&m.data)?;
-
-            } // EDemoCommands::DEM_SyncTick
+            3 => call_if_exists!(self.callbacks.on_CDemoSyncTick), // EDemoCommands::DEM_SyncTick
             4 => {
                 let c = protobuf::parse_from_bytes::<CDemoSendTables>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoSendTables, c);
             } // EDemoCommands::DEM_SendTables
             5 => {
                 let c = protobuf::parse_from_bytes::<CDemoClassInfo>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoClassInfo, c);
             } // EDemoCommands::DEM_ClassInfo
             6 => {
                 let c = protobuf::parse_from_bytes::<CDemoStringTables>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoStringTables, c);
             } // EDemoCommands::DEM_StringTables
-            7 | 8 => {
+            7 => {
                 let c = protobuf::parse_from_bytes::<CDemoPacket>(&m.data)?;
-
-            } // EDemoCommands::DEM_SignonPacket // EDemoCommands::DEM_Packet
+                call_if_exists!(self.callbacks.on_CDemoSignonPacket, c);
+            } // EDemoCommands::DEM_SignonPacket
+            8 => {
+                let c = protobuf::parse_from_bytes::<CDemoPacket>(&m.data)?;
+                call_if_exists!(self.callbacks.on_CDemoPacket, c);
+            } // EDemoCommands::DEM_Packet
             9 => {
                 let c = protobuf::parse_from_bytes::<CDemoConsoleCmd>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoConsoleCmd, c);
             } // EDemoCommands::DEM_ConsoleCmd
             10 => {
                 let c = protobuf::parse_from_bytes::<CDemoCustomData>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoCustomData, c);
             } // EDemoCommands::DEM_CustomData
             11 => {
                 let c = protobuf::parse_from_bytes::<CDemoCustomDataCallbacks>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoCustomDataCallbacks, c);
             } // EDemoCommands::DEM_CustomDataCallbacks
             12 => {
                 let c = protobuf::parse_from_bytes::<CDemoUserCmd>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoUserCmd, c);
             } // EDemoCommands::DEM_UserCmd
             13 => {
                 let c = protobuf::parse_from_bytes::<CDemoFullPacket>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoFullPacket, c);
             } // EDemoCommands::DEM_FullPacket
             14 => {
                 let c = protobuf::parse_from_bytes::<CDemoSaveGame>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoSaveGame, c);
             } // EDemoCommands::DEM_SaveGame
             15 => {
                 let c = protobuf::parse_from_bytes::<CDemoSpawnGroups>(&m.data)?;
-
+                call_if_exists!(self.callbacks.on_CDemoSpawnGroups, c);
             } // EDemoCommands::DEM_SpawnGroups
-            16 => {} // EDemoCommands::DEM_Max
-            64 => {} // EDemoCommands::DEM_IsCompressed
-            _ => {}
+            16 => call_if_exists!(self.callbacks.on_CDemoMax), // EDemoCommands::DEM_Max
+            64 => call_if_exists!(self.callbacks.on_CDemoIsCompressed), // EDemoCommands::DEM_IsCompressed
+            _ => call_if_exists!(self.callbacks.on_CDemoOther),
         };
 
         Ok(())
