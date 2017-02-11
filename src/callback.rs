@@ -2,7 +2,7 @@ use dota::demo::{CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket, C
                  CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd, CDemoCustomData,
                  CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame, CDemoSpawnGroups};
 use dota::usermessages::CUserMessageSayText2;
-use dota::networkbasetypes::CNETMsg_Disconnect;
+use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser};
 
 type NoArg = Option<Box<Fn()>>;
 
@@ -28,9 +28,11 @@ pub struct Callbacks {
     pub on_CDemoMax: NoArg,
     pub on_CDemoIsCompressed: NoArg,
     pub on_CDemoOther: NoArg,
-
+    //////////
     pub on_CNETMsg_NOP: NoArg,
     pub on_CNETMsg_Disconnect: Option<Box<Fn(&CNETMsg_Disconnect)>>,
+    pub on_CNETMsg_SplitScreenUser: Option<Box<Fn(&CNETMsg_SplitScreenUser)>>,
+    //////////
     pub on_CUserMessageSayText2: Option<Box<Fn(&CUserMessageSayText2)>>,
 }
 
@@ -57,8 +59,11 @@ impl Callbacks {
             on_CDemoMax: None,
             on_CDemoIsCompressed: None,
             on_CDemoOther: None,
+            //////////
             on_CNETMsg_NOP: None,
             on_CNETMsg_Disconnect: None,
+            on_CNETMsg_SplitScreenUser: None,
+            //////////
             on_CUserMessageSayText2: None,
         }
     }

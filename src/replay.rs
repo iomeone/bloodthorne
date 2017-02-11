@@ -10,7 +10,7 @@ use dota::demo::{EDemoCommands, CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDe
                  CDemoSendTables, CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd,
                  CDemoCustomData, CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame,
                  CDemoSpawnGroups};
-use dota::networkbasetypes::CNETMsg_Disconnect;
+use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser};
 // use dota::netmessages::{CSVCMsg_ServerInfo, CCLCMsg_ClientInfo};
 use dota::usermessages::CUserMessageSayText2;
 
@@ -162,6 +162,11 @@ impl Replay {
                     // NET_Messages::net_Disconnect
                     let e = protobuf::parse_from_bytes::<CNETMsg_Disconnect>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CNETMsg_Disconnect, &e);
+                }
+                2 => {
+                    // NET_Messages::net_SplitScreenUser
+                    let e = protobuf::parse_from_bytes::<CNETMsg_SplitScreenUser>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_SplitScreenUser, &e);
                 }
                 118 => {
                     // EBaseUserMessages::UM_SayText2
