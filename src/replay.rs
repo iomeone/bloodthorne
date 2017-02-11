@@ -16,7 +16,7 @@ use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser, CNETMs
                              CNETMsg_SpawnGroup_SetCreationTick, CNETMsg_SpawnGroup_Unload,
                              CNETMsg_SpawnGroup_LoadCompleted};
 use dota::netmessages::{CSVCMsg_ServerInfo, CSVCMsg_CreateStringTable};
-use dota::usermessages::CUserMessageSayText2;
+use dota::usermessages::{CUserMessageSayText2, CUserMessageSayText, CUserMessageSayTextChannel};
 
 use callback::Callbacks;
 
@@ -230,10 +230,20 @@ impl Replay {
                     let e = protobuf::parse_from_bytes::<CSVCMsg_CreateStringTable>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CSVCMsg_CreateStringTable, &e);
                 }
+                117 => {
+                    // EBaseUserMessages::UM_SayText
+                    let e = protobuf::parse_from_bytes::<CUserMessageSayText>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CUserMessageSayText, &e);
+                }
                 118 => {
                     // EBaseUserMessages::UM_SayText2
                     let e = protobuf::parse_from_bytes::<CUserMessageSayText2>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CUserMessageSayText2, &e);
+                }
+                119 => {
+                    // EBaseUserMessages::UM_SayTextChannel
+                    let e = protobuf::parse_from_bytes::<CUserMessageSayTextChannel>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CUserMessageSayTextChannel, &e);
                 }
                 _ => {}
             }

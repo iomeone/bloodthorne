@@ -1,7 +1,7 @@
 use dota::demo::{CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket, CDemoSendTables,
                  CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd, CDemoCustomData,
                  CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame, CDemoSpawnGroups};
-use dota::usermessages::CUserMessageSayText2;
+use dota::usermessages::{CUserMessageSayText2, CUserMessageSayText, CUserMessageSayTextChannel};
 use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser, CNETMsg_Tick,
                              CNETMsg_StringCmd, CNETMsg_SetConVar, CNETMsg_SignonState,
                              CNETMsg_SpawnGroup_Load, CNETMsg_SpawnGroup_ManifestUpdate,
@@ -50,7 +50,9 @@ pub struct Callbacks {
     pub on_CSVCMsg_ServerInfo: Option<Box<Fn(&CSVCMsg_ServerInfo)>>,
     pub on_CSVCMsg_CreateStringTable: Option<Box<Fn(&CSVCMsg_CreateStringTable)>>,
     /////////
+    pub on_CUserMessageSayText: Option<Box<Fn(&CUserMessageSayText)>>,
     pub on_CUserMessageSayText2: Option<Box<Fn(&CUserMessageSayText2)>>,
+    pub on_CUserMessageSayTextChannel: Option<Box<Fn(&CUserMessageSayTextChannel)>>,
 }
 
 impl Callbacks {
@@ -93,7 +95,9 @@ impl Callbacks {
             on_CSVCMsg_ServerInfo: None,
             on_CSVCMsg_CreateStringTable: None,
             /////////
+            on_CUserMessageSayText: None,
             on_CUserMessageSayText2: None,
+            on_CUserMessageSayTextChannel: None,
         }
     }
 }
