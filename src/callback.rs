@@ -1,29 +1,32 @@
 use dota::demo::{CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket, CDemoSendTables,
                  CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd, CDemoCustomData,
                  CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame, CDemoSpawnGroups};
+use dota::usermessages::CUserMessageSayText2;
 
 #[allow(non_snake_case)]
 pub struct Callbacks {
     pub on_CDemoError: Option<Box<Fn()>>,
     pub on_CDemoStop: Option<Box<Fn()>>,
-    pub on_CDemoFileHeader: Option<Box<Fn(CDemoFileHeader)>>,
-    pub on_CDemoFileInfo: Option<Box<Fn(CDemoFileInfo)>>,
+    pub on_CDemoFileHeader: Option<Box<Fn(&CDemoFileHeader)>>,
+    pub on_CDemoFileInfo: Option<Box<Fn(&CDemoFileInfo)>>,
     pub on_CDemoSyncTick: Option<Box<Fn()>>,
-    pub on_CDemoSendTables: Option<Box<Fn(CDemoSendTables)>>,
-    pub on_CDemoClassInfo: Option<Box<Fn(CDemoClassInfo)>>,
-    pub on_CDemoStringTables: Option<Box<Fn(CDemoStringTables)>>,
-    pub on_CDemoSignonPacket: Option<Box<Fn(CDemoPacket)>>,
-    pub on_CDemoPacket: Option<Box<Fn(CDemoPacket)>>,
-    pub on_CDemoConsoleCmd: Option<Box<Fn(CDemoConsoleCmd)>>,
-    pub on_CDemoCustomData: Option<Box<Fn(CDemoCustomData)>>,
-    pub on_CDemoCustomDataCallbacks: Option<Box<Fn(CDemoCustomDataCallbacks)>>,
-    pub on_CDemoUserCmd: Option<Box<Fn(CDemoUserCmd)>>,
-    pub on_CDemoFullPacket: Option<Box<Fn(CDemoFullPacket)>>,
-    pub on_CDemoSaveGame: Option<Box<Fn(CDemoSaveGame)>>,
-    pub on_CDemoSpawnGroups: Option<Box<Fn(CDemoSpawnGroups)>>,
+    pub on_CDemoSendTables: Option<Box<Fn(&CDemoSendTables)>>,
+    pub on_CDemoClassInfo: Option<Box<Fn(&CDemoClassInfo)>>,
+    pub on_CDemoStringTables: Option<Box<Fn(&CDemoStringTables)>>,
+    pub on_CDemoSignonPacket: Option<Box<Fn(&CDemoPacket)>>,
+    pub on_CDemoPacket: Option<Box<Fn(&CDemoPacket)>>,
+    pub on_CDemoConsoleCmd: Option<Box<Fn(&CDemoConsoleCmd)>>,
+    pub on_CDemoCustomData: Option<Box<Fn(&CDemoCustomData)>>,
+    pub on_CDemoCustomDataCallbacks: Option<Box<Fn(&CDemoCustomDataCallbacks)>>,
+    pub on_CDemoUserCmd: Option<Box<Fn(&CDemoUserCmd)>>,
+    pub on_CDemoFullPacket: Option<Box<Fn(&CDemoFullPacket)>>,
+    pub on_CDemoSaveGame: Option<Box<Fn(&CDemoSaveGame)>>,
+    pub on_CDemoSpawnGroups: Option<Box<Fn(&CDemoSpawnGroups)>>,
     pub on_CDemoMax: Option<Box<Fn()>>,
     pub on_CDemoIsCompressed: Option<Box<Fn()>>,
     pub on_CDemoOther: Option<Box<Fn()>>,
+
+    pub on_CUserMessageSayText2: Option<Box<Fn(&CUserMessageSayText2)>>,
 }
 
 impl Callbacks {
@@ -49,6 +52,7 @@ impl Callbacks {
             on_CDemoMax: None,
             on_CDemoIsCompressed: None,
             on_CDemoOther: None,
+            on_CUserMessageSayText2: None,
         }
     }
 }

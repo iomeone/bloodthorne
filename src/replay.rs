@@ -12,7 +12,7 @@ use dota::demo::{EDemoCommands, CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDe
                  CDemoSpawnGroups};
 // use dota::networkbasetypes::CNETMsg_Tick;
 // use dota::netmessages::{CSVCMsg_ServerInfo, CCLCMsg_ClientInfo};
-// use dota::usermessages::CUserMessageSayText2;
+use dota::usermessages::CUserMessageSayText2;
 
 use callback::Callbacks;
 
@@ -87,65 +87,83 @@ impl Replay {
             0 => call_if_exists!(self.callbacks.on_CDemoStop),  // EDemoCommands::DEM_Stop
             1 => {
                 let c = protobuf::parse_from_bytes::<CDemoFileHeader>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoFileHeader, c);
+                call_if_exists!(self.callbacks.on_CDemoFileHeader, &c);
             } // EDemoCommands::DEM_FileHeader
             2 => {
                 let c = protobuf::parse_from_bytes::<CDemoFileInfo>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoFileInfo, c);
+                call_if_exists!(self.callbacks.on_CDemoFileInfo, &c);
             } // DemoCommands::DEM_FileInfo
             3 => call_if_exists!(self.callbacks.on_CDemoSyncTick), // EDemoCommands::DEM_SyncTick
             4 => {
                 let c = protobuf::parse_from_bytes::<CDemoSendTables>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoSendTables, c);
+                call_if_exists!(self.callbacks.on_CDemoSendTables, &c);
             } // EDemoCommands::DEM_SendTables
             5 => {
                 let c = protobuf::parse_from_bytes::<CDemoClassInfo>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoClassInfo, c);
+                call_if_exists!(self.callbacks.on_CDemoClassInfo, &c);
             } // EDemoCommands::DEM_ClassInfo
             6 => {
                 let c = protobuf::parse_from_bytes::<CDemoStringTables>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoStringTables, c);
+                call_if_exists!(self.callbacks.on_CDemoStringTables, &c);
             } // EDemoCommands::DEM_StringTables
             7 => {
                 let c = protobuf::parse_from_bytes::<CDemoPacket>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoSignonPacket, c);
+                call_if_exists!(self.callbacks.on_CDemoSignonPacket, &c);
             } // EDemoCommands::DEM_SignonPacket
             8 => {
                 let c = protobuf::parse_from_bytes::<CDemoPacket>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoPacket, c);
+                call_if_exists!(self.callbacks.on_CDemoPacket, &c);
+                self.handle_packet_by_type(&c)?;
             } // EDemoCommands::DEM_Packet
             9 => {
                 let c = protobuf::parse_from_bytes::<CDemoConsoleCmd>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoConsoleCmd, c);
+                call_if_exists!(self.callbacks.on_CDemoConsoleCmd, &c);
             } // EDemoCommands::DEM_ConsoleCmd
             10 => {
                 let c = protobuf::parse_from_bytes::<CDemoCustomData>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoCustomData, c);
+                call_if_exists!(self.callbacks.on_CDemoCustomData, &c);
             } // EDemoCommands::DEM_CustomData
             11 => {
                 let c = protobuf::parse_from_bytes::<CDemoCustomDataCallbacks>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoCustomDataCallbacks, c);
+                call_if_exists!(self.callbacks.on_CDemoCustomDataCallbacks, &c);
             } // EDemoCommands::DEM_CustomDataCallbacks
             12 => {
                 let c = protobuf::parse_from_bytes::<CDemoUserCmd>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoUserCmd, c);
+                call_if_exists!(self.callbacks.on_CDemoUserCmd, &c);
             } // EDemoCommands::DEM_UserCmd
             13 => {
                 let c = protobuf::parse_from_bytes::<CDemoFullPacket>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoFullPacket, c);
+                call_if_exists!(self.callbacks.on_CDemoFullPacket, &c);
             } // EDemoCommands::DEM_FullPacket
             14 => {
                 let c = protobuf::parse_from_bytes::<CDemoSaveGame>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoSaveGame, c);
+                call_if_exists!(self.callbacks.on_CDemoSaveGame, &c);
             } // EDemoCommands::DEM_SaveGame
             15 => {
                 let c = protobuf::parse_from_bytes::<CDemoSpawnGroups>(&m.data)?;
-                call_if_exists!(self.callbacks.on_CDemoSpawnGroups, c);
+                call_if_exists!(self.callbacks.on_CDemoSpawnGroups, &c);
             } // EDemoCommands::DEM_SpawnGroups
             16 => call_if_exists!(self.callbacks.on_CDemoMax), // EDemoCommands::DEM_Max
             64 => call_if_exists!(self.callbacks.on_CDemoIsCompressed), // EDemoCommands::DEM_IsCompressed
             _ => call_if_exists!(self.callbacks.on_CDemoOther),
         };
+
+        Ok(())
+    }
+
+    fn handle_packet_by_type(&self, packet: &CDemoPacket) -> Result<()> {
+        let packet_datas = PacketData::from_packet(packet)?;
+
+        for d in packet_datas {
+            match d.kind {
+                118 => {
+                    // EBaseUserMessages::UM_SayText2
+                    let e = protobuf::parse_from_bytes::<CUserMessageSayText2>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CUserMessageSayText2, &e);
+                }
+                _ => {}
+            }
+        }
 
         Ok(())
     }
@@ -188,23 +206,6 @@ impl OuterMessage {
         })
     }
 }
-
-
-// fn entities_from_packet(packet: &CDemoPacket) -> Vec<Result<PacketEntity>> {
-//     let packet_datas = PacketData::from_packet(packet).expect("Error getting packet data");
-//     packet_datas.iter()
-//         .map(|d| {
-//             match d.kind {
-//                     118 => {
-//                         protobuf::parse_from_bytes::<CUserMessageSayText2>(&d.data)
-//                             .map(PacketEntity::ChatMessage)
-//                     }
-//                     v => Ok(PacketEntity::Other(v)),
-//                 }
-//                 .map_err(Error::from)
-//         })
-//         .collect()
-// }
 
 struct PacketData {
     kind: u32,
