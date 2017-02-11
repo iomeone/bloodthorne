@@ -109,6 +109,7 @@ impl Replay {
             7 => {
                 let c = protobuf::parse_from_bytes::<CDemoPacket>(&m.data)?;
                 call_if_exists!(self.callbacks.on_CDemoSignonPacket, &c);
+                self.handle_packet_by_type(&c)?;
             } // EDemoCommands::DEM_SignonPacket
             8 => {
                 let c = protobuf::parse_from_bytes::<CDemoPacket>(&m.data)?;
