@@ -15,7 +15,7 @@ use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser, CNETMs
                              CNETMsg_SpawnGroup_Load, CNETMsg_SpawnGroup_ManifestUpdate,
                              CNETMsg_SpawnGroup_SetCreationTick, CNETMsg_SpawnGroup_Unload,
                              CNETMsg_SpawnGroup_LoadCompleted};
-// use dota::netmessages::{CSVCMsg_ServerInfo, CCLCMsg_ClientInfo};
+use dota::netmessages::CSVCMsg_ServerInfo;
 use dota::usermessages::CUserMessageSayText2;
 
 use callback::Callbacks;
@@ -219,6 +219,11 @@ impl Replay {
                     let e =
                         protobuf::parse_from_bytes::<CNETMsg_SpawnGroup_LoadCompleted>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CNETMsg_SpawnGroup_LoadCompleted, &e);
+                }
+                40 => {
+                    // SVC_Messages::svc_ServerInfo
+                    let e = protobuf::parse_from_bytes::<CSVCMsg_ServerInfo>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CSVCMsg_ServerInfo, &e);
                 }
                 118 => {
                     // EBaseUserMessages::UM_SayText2

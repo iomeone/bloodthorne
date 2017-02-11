@@ -7,6 +7,7 @@ use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser, CNETMs
                              CNETMsg_SpawnGroup_Load, CNETMsg_SpawnGroup_ManifestUpdate,
                              CNETMsg_SpawnGroup_SetCreationTick, CNETMsg_SpawnGroup_Unload,
                              CNETMsg_SpawnGroup_LoadCompleted};
+use dota::netmessages::CSVCMsg_ServerInfo;
 
 type NoArg = Option<Box<Fn()>>;
 
@@ -46,6 +47,8 @@ pub struct Callbacks {
     pub on_CNETMsg_SpawnGroup_Unload: Option<Box<Fn(&CNETMsg_SpawnGroup_Unload)>>,
     pub on_CNETMsg_SpawnGroup_LoadCompleted: Option<Box<Fn(&CNETMsg_SpawnGroup_LoadCompleted)>>,
     //////////
+    pub on_CSVCMsg_ServerInfo: Option<Box<Fn(&CSVCMsg_ServerInfo)>>,
+    /////////
     pub on_CUserMessageSayText2: Option<Box<Fn(&CUserMessageSayText2)>>,
 }
 
@@ -86,6 +89,8 @@ impl Callbacks {
             on_CNETMsg_SpawnGroup_Unload: None,
             on_CNETMsg_SpawnGroup_LoadCompleted: None,
             //////////
+            on_CSVCMsg_ServerInfo: None,
+            /////////
             on_CUserMessageSayText2: None,
         }
     }
