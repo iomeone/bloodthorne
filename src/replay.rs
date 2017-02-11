@@ -10,7 +10,11 @@ use dota::demo::{EDemoCommands, CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDe
                  CDemoSendTables, CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd,
                  CDemoCustomData, CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame,
                  CDemoSpawnGroups};
-use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser};
+use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser, CNETMsg_Tick,
+                             CNETMsg_StringCmd, CNETMsg_SetConVar, CNETMsg_SignonState,
+                             CNETMsg_SpawnGroup_Load, CNETMsg_SpawnGroup_ManifestUpdate,
+                             CNETMsg_SpawnGroup_SetCreationTick, CNETMsg_SpawnGroup_Unload,
+                             CNETMsg_SpawnGroup_LoadCompleted};
 // use dota::netmessages::{CSVCMsg_ServerInfo, CCLCMsg_ClientInfo};
 use dota::usermessages::CUserMessageSayText2;
 
@@ -171,7 +175,50 @@ impl Replay {
                 4 => {
                     // NET_Messages::net_Tick
                     let e = protobuf::parse_from_bytes::<CNETMsg_Tick>(&d.data)?;
-                    call_if_exists!(self.callbacks.CNETMsg_Tick, &e);
+                    call_if_exists!(self.callbacks.on_CNETMsg_Tick, &e);
+                }
+                5 => {
+                    // NET_Messages::net_StringCmd
+                    let e = protobuf::parse_from_bytes::<CNETMsg_StringCmd>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_StringCmd, &e);
+                }
+                6 => {
+                    // NET_Messages::net_SetConVar
+                    let e = protobuf::parse_from_bytes::<CNETMsg_SetConVar>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_SetConVar, &e);
+                }
+                7 => {
+                    // NET_Messages::net_SignonState
+                    let e = protobuf::parse_from_bytes::<CNETMsg_SignonState>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_SignonState, &e);
+                }
+                8 => {
+                    // NET_Messages::net_SpawnGroup_Load
+                    let e = protobuf::parse_from_bytes::<CNETMsg_SpawnGroup_Load>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_SpawnGroup_Load, &e);
+                }
+                9 => {
+                    // NET_Messages::net_SpawnGroup_ManifestUpdate
+                    let e =
+                        protobuf::parse_from_bytes::<CNETMsg_SpawnGroup_ManifestUpdate>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_SpawnGroup_ManifestUpdate, &e);
+                }
+                11 => {
+                    // NET_Messages::net_SpawnGroup_SetCreationTick
+                    let e =
+                        protobuf::parse_from_bytes::<CNETMsg_SpawnGroup_SetCreationTick>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_SpawnGroup_SetCreationTick, &e);
+                }
+                12 => {
+                    // NET_Messages::net_SpawnGroup_Unload
+                    let e = protobuf::parse_from_bytes::<CNETMsg_SpawnGroup_Unload>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_SpawnGroup_Unload, &e);
+                }
+                13 => {
+                    // NET_Messages::net_SpawnGroup_LoadCompleted
+                    let e =
+                        protobuf::parse_from_bytes::<CNETMsg_SpawnGroup_LoadCompleted>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CNETMsg_SpawnGroup_LoadCompleted, &e);
                 }
                 118 => {
                     // EBaseUserMessages::UM_SayText2

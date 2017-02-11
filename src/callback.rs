@@ -2,7 +2,11 @@ use dota::demo::{CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket, C
                  CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd, CDemoCustomData,
                  CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame, CDemoSpawnGroups};
 use dota::usermessages::CUserMessageSayText2;
-use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser};
+use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser, CNETMsg_Tick,
+                             CNETMsg_StringCmd, CNETMsg_SetConVar, CNETMsg_SignonState,
+                             CNETMsg_SpawnGroup_Load, CNETMsg_SpawnGroup_ManifestUpdate,
+                             CNETMsg_SpawnGroup_SetCreationTick, CNETMsg_SpawnGroup_Unload,
+                             CNETMsg_SpawnGroup_LoadCompleted};
 
 type NoArg = Option<Box<Fn()>>;
 
@@ -33,6 +37,14 @@ pub struct Callbacks {
     pub on_CNETMsg_Disconnect: Option<Box<Fn(&CNETMsg_Disconnect)>>,
     pub on_CNETMsg_SplitScreenUser: Option<Box<Fn(&CNETMsg_SplitScreenUser)>>,
     pub on_CNETMsg_Tick: Option<Box<Fn(&CNETMsg_Tick)>>,
+    pub on_CNETMsg_StringCmd: Option<Box<Fn(&CNETMsg_StringCmd)>>,
+    pub on_CNETMsg_SetConVar: Option<Box<Fn(&CNETMsg_SetConVar)>>,
+    pub on_CNETMsg_SignonState: Option<Box<Fn(&CNETMsg_SignonState)>>,
+    pub on_CNETMsg_SpawnGroup_Load: Option<Box<Fn(&CNETMsg_SpawnGroup_Load)>>,
+    pub on_CNETMsg_SpawnGroup_ManifestUpdate: Option<Box<Fn(&CNETMsg_SpawnGroup_ManifestUpdate)>>,
+    pub on_CNETMsg_SpawnGroup_SetCreationTick: Option<Box<Fn(&CNETMsg_SpawnGroup_SetCreationTick)>>,
+    pub on_CNETMsg_SpawnGroup_Unload: Option<Box<Fn(&CNETMsg_SpawnGroup_Unload)>>,
+    pub on_CNETMsg_SpawnGroup_LoadCompleted: Option<Box<Fn(&CNETMsg_SpawnGroup_LoadCompleted)>>,
     //////////
     pub on_CUserMessageSayText2: Option<Box<Fn(&CUserMessageSayText2)>>,
 }
@@ -65,6 +77,14 @@ impl Callbacks {
             on_CNETMsg_Disconnect: None,
             on_CNETMsg_SplitScreenUser: None,
             on_CNETMsg_Tick: None,
+            on_CNETMsg_StringCmd: None,
+            on_CNETMsg_SetConVar: None,
+            on_CNETMsg_SignonState: None,
+            on_CNETMsg_SpawnGroup_Load: None,
+            on_CNETMsg_SpawnGroup_ManifestUpdate: None,
+            on_CNETMsg_SpawnGroup_SetCreationTick: None,
+            on_CNETMsg_SpawnGroup_Unload: None,
+            on_CNETMsg_SpawnGroup_LoadCompleted: None,
             //////////
             on_CUserMessageSayText2: None,
         }
