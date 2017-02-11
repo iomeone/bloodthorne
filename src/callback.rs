@@ -2,14 +2,17 @@ use dota::demo::{CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket, C
                  CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd, CDemoCustomData,
                  CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame, CDemoSpawnGroups};
 use dota::usermessages::CUserMessageSayText2;
+use dota::networkbasetypes::CNETMsg_Disconnect;
+
+type NoArg = Option<Box<Fn()>>;
 
 #[allow(non_snake_case)]
 pub struct Callbacks {
-    pub on_CDemoError: Option<Box<Fn()>>,
-    pub on_CDemoStop: Option<Box<Fn()>>,
+    pub on_CDemoError: NoArg,
+    pub on_CDemoStop: NoArg,
     pub on_CDemoFileHeader: Option<Box<Fn(&CDemoFileHeader)>>,
     pub on_CDemoFileInfo: Option<Box<Fn(&CDemoFileInfo)>>,
-    pub on_CDemoSyncTick: Option<Box<Fn()>>,
+    pub on_CDemoSyncTick: NoArg,
     pub on_CDemoSendTables: Option<Box<Fn(&CDemoSendTables)>>,
     pub on_CDemoClassInfo: Option<Box<Fn(&CDemoClassInfo)>>,
     pub on_CDemoStringTables: Option<Box<Fn(&CDemoStringTables)>>,
@@ -22,10 +25,12 @@ pub struct Callbacks {
     pub on_CDemoFullPacket: Option<Box<Fn(&CDemoFullPacket)>>,
     pub on_CDemoSaveGame: Option<Box<Fn(&CDemoSaveGame)>>,
     pub on_CDemoSpawnGroups: Option<Box<Fn(&CDemoSpawnGroups)>>,
-    pub on_CDemoMax: Option<Box<Fn()>>,
-    pub on_CDemoIsCompressed: Option<Box<Fn()>>,
-    pub on_CDemoOther: Option<Box<Fn()>>,
+    pub on_CDemoMax: NoArg,
+    pub on_CDemoIsCompressed: NoArg,
+    pub on_CDemoOther: NoArg,
 
+    pub on_CNETMsg_NOP: NoArg,
+    pub on_CNETMsg_Disconnect: Option<Box<Fn(&CNETMsg_Disconnect)>>,
     pub on_CUserMessageSayText2: Option<Box<Fn(&CUserMessageSayText2)>>,
 }
 
@@ -52,6 +57,8 @@ impl Callbacks {
             on_CDemoMax: None,
             on_CDemoIsCompressed: None,
             on_CDemoOther: None,
+            on_CNETMsg_NOP: None,
+            on_CNETMsg_Disconnect: None,
             on_CUserMessageSayText2: None,
         }
     }
