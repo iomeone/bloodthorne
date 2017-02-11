@@ -32,6 +32,7 @@ pub struct Callbacks {
     pub on_CNETMsg_NOP: NoArg,
     pub on_CNETMsg_Disconnect: Option<Box<Fn(&CNETMsg_Disconnect)>>,
     pub on_CNETMsg_SplitScreenUser: Option<Box<Fn(&CNETMsg_SplitScreenUser)>>,
+    pub on_CNETMsg_Tick: Option<Box<Fn(&CNETMsg_Tick)>>,
     //////////
     pub on_CUserMessageSayText2: Option<Box<Fn(&CUserMessageSayText2)>>,
 }
@@ -63,6 +64,7 @@ impl Callbacks {
             on_CNETMsg_NOP: None,
             on_CNETMsg_Disconnect: None,
             on_CNETMsg_SplitScreenUser: None,
+            on_CNETMsg_Tick: None,
             //////////
             on_CUserMessageSayText2: None,
         }

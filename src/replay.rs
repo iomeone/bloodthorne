@@ -163,10 +163,15 @@ impl Replay {
                     let e = protobuf::parse_from_bytes::<CNETMsg_Disconnect>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CNETMsg_Disconnect, &e);
                 }
-                2 => {
+                3 => {
                     // NET_Messages::net_SplitScreenUser
                     let e = protobuf::parse_from_bytes::<CNETMsg_SplitScreenUser>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CNETMsg_SplitScreenUser, &e);
+                }
+                4 => {
+                    // NET_Messages::net_Tick
+                    let e = protobuf::parse_from_bytes::<CNETMsg_Tick>(&d.data)?;
+                    call_if_exists!(self.callbacks.CNETMsg_Tick, &e);
                 }
                 118 => {
                     // EBaseUserMessages::UM_SayText2
