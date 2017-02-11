@@ -60,18 +60,18 @@ impl Replay {
 
     pub fn parse(&mut self) -> Result<()> {
         const HEADER_SOURCE_2: &'static [u8; 8] = b"PBDEMS2\0";
-        // if HEADER_SOURCE_2 != &self.bytes[0..8] {
-        //     return Err(Error::new(ErrorKind::InvalidData,
-        //                           format!("Wrong header: expect {:?}, found {:?}",
-        //                                   HEADER_SOURCE_2,
-        //                                   &self.bytes[0..8])));
-        // }
+        if HEADER_SOURCE_2 != &self.bytes[0..8] {
+            return Err(Error::new(ErrorKind::InvalidData,
+                                  format!("Wrong header: expect {:?}, found {:?}",
+                                          HEADER_SOURCE_2,
+                                          &self.bytes[0..8])));
+        }
 
         let mut stream = CodedInputStream::from_bytes(&self.bytes[16..]);
 
         loop {
             let outer_message = OuterMessage::new(&mut stream)?;
-            self.handle_outer_message_by_type(&outer_message).unwrap();
+            self.handle_outer_message_by_type(&outer_message)?;
 
             if outer_message.kind == 0 {
                 // Stop
