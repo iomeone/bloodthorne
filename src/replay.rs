@@ -37,6 +37,23 @@ macro_rules! call_if_exists {
     };
 }
 
+/// ```
+/// use std::path;
+/// extern crate bloodthorne;
+/// use bloodthorne::replay::Replay;
+///
+/// fn main() {
+///     let mut replay = Replay::from_file(path::Path::new("example.dem")).expect("Error replay");
+///
+///     replay.callbacks.on_CUserMessageSayText2 = Some(Box::new(|ref m| {
+///         println!("CUserMessageSayText2: `{}` says `{}`",
+///                  m.get_param1(),
+///                  m.get_param2());
+///     }));
+///
+///     replay.parse().expect("Error parsing");
+/// }
+/// ```
 pub struct Replay {
     bytes: Vec<u8>,
     pub callbacks: Callbacks,
@@ -229,6 +246,8 @@ impl Replay {
                     // SVC_Messages::svc_CreateStringTable
                     let e = protobuf::parse_from_bytes::<CSVCMsg_CreateStringTable>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CSVCMsg_CreateStringTable, &e);
+
+                    handle_string_table(&e)?;
                 }
                 117 => {
                     // EBaseUserMessages::UM_SayText
@@ -321,4 +340,18 @@ impl PacketData {
 
         Ok(res)
     }
+}
+
+fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<()> {
+    let buf = s.get_string_data();
+    let mut data;
+
+    if s.get_data_compressed() {
+        let mut decoder = Decoder::new();
+        data = decoder.decompress_vec(&buf).map_err(Error::from)?;
+    }
+
+    println!("String table: {:?}", s);
+
+    Ok(())
 }
