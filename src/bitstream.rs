@@ -41,15 +41,22 @@ impl BitStream {
         Ok(x as u32)
     }
 
+    /// Get next block as aligned byte
     pub fn next_byte(&mut self) -> io::Result<u8> {
         if self.position + 1 > self.buffer.len() {
-            Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Unexpected EOF"))
-        } else {
-            self.position += 1;
-            Ok(self.buffer[self.position - 1])
+            return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Unexpected EOF"));
         }
+
+        self.position += 1;
+        Ok(self.buffer[self.position - 1])
     }
 
+    /// Read next (potentially unaligned) byte
+    pub fn read_byte(&mut self) -> io::Result<u8> {
+        self.read_bytes(1).map(|bytes| bytes[0])
+    }
+
+    /// Read next (potentially unaligned) n bytes
     pub fn read_bytes(&mut self, n: usize) -> io::Result<Vec<u8>> {
         if self.position + n > self.buffer.len() {
             return Err(io::Error::new(io::ErrorKind::UnexpectedEof, "Unexpected EOF"));
@@ -119,7 +126,7 @@ impl BitStream {
         let mut bytes = Vec::new();
 
         loop {
-            let byte = self.next_byte().map_err(ReadStringError::IOError)?;
+            let byte = self.read_byte().map_err(ReadStringError::IOError)?;
 
             if byte == 0 {
                 break;
@@ -136,7 +143,7 @@ impl BitStream {
         let bytes_count = (n / 8) as usize;
 
         for _ in 0..bytes_count {
-            bytes.push(self.next_byte()?);
+            bytes.push(self.read_byte()?);
         }
 
         let bits_remaining = (n - 8 * bytes_count) as u8;
@@ -337,6 +344,23 @@ mod tests {
 
         assert_eq!(b.read_string().unwrap(), "Hello");
     }
+
+    #[test]
+    fn test_read_string_unaligned() {
+        let mut b = BitStream::new(vec![0b1110_0001, 0, 0]);
+        b.read_bits(1).ok();
+
+        // "p" is 0b1110_0000
+        assert_eq!(b.read_string().unwrap(), "p");
+    }
+
+    #[test]
+    fn test_read_bytes_unaligned() {
+        let mut b = BitStream::new(vec![0b0000_0111, 0, 0]);
+        assert_eq!(b.read_bits(1).unwrap(), 1);
+        assert_eq!(b.read_bytes(1).unwrap(), [0b0000_0011]);
+    }
+
 
     #[test]
     fn test_bits_as_bytes() {
