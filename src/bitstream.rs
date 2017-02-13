@@ -1,4 +1,13 @@
-use std::io;
+use std::io::{self, Error};
+use std::string::FromUtf8Error;
+use std::result::Result;
+use std::num::Wrapping;
+
+#[derive(Debug)]
+pub enum ReadStringError {
+    IOError(Error),
+    Utf8Error(FromUtf8Error),
+}
 
 pub struct BitStream {
     buffer: Vec<u8>,
@@ -79,19 +88,19 @@ impl BitStream {
         let max = 32u32;
         let m: u32 = max + 6;
         let mut s = 0u32;
-        let mut v = 0u32;
+        let mut v = Wrapping(0u32);
         let mut b: u32;
 
         loop {
-            b = self.read_bits(8)? as u32;
-            v |= (b & 0x7F) << s;
+            b = self.read_bits(8)?;
+            v |= Wrapping((b & 0x7F)) << s as usize;
             s += 7;
             if ((b & 0x80) == 0) || s == m {
                 break;
             }
         }
 
-        Ok(v)
+        Ok(v.0)
     }
 
     pub fn remaining_bits(&self) -> usize {
@@ -100,6 +109,26 @@ impl BitStream {
 
     pub fn remaining_bytes(&self) -> usize {
         self.buffer.len() - self.position
+    }
+
+    pub fn read_bool(&mut self) -> io::Result<bool> {
+        self.read_bits(1).map(|b| b == 1)
+    }
+
+    pub fn read_string(&mut self) -> Result<String, ReadStringError> {
+        let mut bytes = Vec::new();
+
+        loop {
+            let byte = self.next_byte().map_err(ReadStringError::IOError)?;
+
+            if byte == 0 {
+                break;
+            }
+
+            bytes.push(byte);
+        }
+
+        String::from_utf8(bytes).map_err(ReadStringError::Utf8Error)
     }
 }
 
@@ -265,4 +294,33 @@ mod tests {
         assert_eq!(b.read_u32var().unwrap(), 9);
     }
 
+    #[test]
+    fn test_read_bool_false() {
+        let mut b = BitStream::new(vec![0b0000_0000]);
+
+        assert_eq!(b.read_bool().unwrap(), false);
+    }
+
+    #[test]
+    fn test_read_bool_true() {
+        let mut b = BitStream::new(vec![0b0000_0001]);
+
+        assert_eq!(b.read_bool().unwrap(), true);
+    }
+
+    #[test]
+    fn test_read_bool_several() {
+        let mut b = BitStream::new(vec![0b0000_0101]);
+
+        assert_eq!(b.read_bool().unwrap(), true);
+        assert_eq!(b.read_bool().unwrap(), false);
+        assert_eq!(b.read_bool().unwrap(), true);
+    }
+
+    #[test]
+    fn test_read_string() {
+        let mut b = BitStream::new(vec![72, 101, 108, 108, 111, 0]);
+
+        assert_eq!(b.read_string().unwrap(), "Hello");
+    }
 }

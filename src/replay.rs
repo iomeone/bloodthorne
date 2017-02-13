@@ -344,14 +344,39 @@ impl PacketData {
 
 fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<()> {
     let buf = s.get_string_data();
-    let mut data;
+    let mut data: Vec<u8> = buf.to_vec();
+    let mut key = String::new();
 
     if s.get_data_compressed() {
         let mut decoder = Decoder::new();
         data = decoder.decompress_vec(&buf).map_err(Error::from)?;
     }
 
-    println!("String table: {:?}", s);
+    let mut index: i32 = -1;
+    let mut bitstream = BitStream::new(data);
+
+    for i in 0..s.get_num_entries() {
+        let increment = bitstream.read_bool()?;
+
+        if increment {
+            index += 1;
+        } else {
+            index = bitstream.read_u32var()? as i32 + 1;
+        }
+
+        let has_key = bitstream.read_bool()?;
+
+        if has_key {
+            let use_history = bitstream.read_bool()?;
+            let position = bitstream.read_bits(5)?;
+            let size = bitstream.read_bits(5)?;
+            const KEY_HISTORY_SIZE: u32 = 32;
+
+            // if position >= key_history_size {
+            //     key.push_str(&bitstream.read_string()?);
+            // }
+        }
+    }
 
     Ok(())
 }
