@@ -391,7 +391,7 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
                 let position = bitstream.read_bits(5)? as usize;
                 let size = bitstream.read_bits(5)? as usize;
 
-                if position >= KEY_HISTORY_SIZE {
+                if position >= keys.len() {
                     key.push_str(&bitstream.read_string().unwrap()); // FIXME
                 } else {
                     let ref string = keys[position as usize];
