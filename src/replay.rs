@@ -23,6 +23,8 @@ use callback::Callbacks;
 use std::io::{Result, Error, Read, ErrorKind};
 use std::path::Path;
 use std::fs::File;
+use std::string::String;
+use std::vec::Vec;
 
 macro_rules! call_if_exists {
     ($f:expr, $c:expr) => {
@@ -247,7 +249,8 @@ impl Replay {
                     let e = protobuf::parse_from_bytes::<CSVCMsg_CreateStringTable>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CSVCMsg_CreateStringTable, &e);
 
-                    handle_string_table(&e)?;
+                    let string_tables = handle_string_table(&e)?;
+                    println!("String tables: {:?}", string_tables);
                 }
                 117 => {
                     // EBaseUserMessages::UM_SayText
@@ -342,10 +345,17 @@ impl PacketData {
     }
 }
 
-fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<()> {
+#[derive(Debug)]
+struct StringTableItem {
+    index: i32,
+    key: String,
+    value: Vec<u8>,
+}
+
+fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableItem>> {
+    let mut result = Vec::new();
     let buf = s.get_string_data();
     let mut data: Vec<u8> = buf.to_vec();
-    let mut key = String::new();
 
     if s.get_data_compressed() {
         let mut decoder = Decoder::new();
@@ -353,9 +363,16 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<()> {
     }
 
     let mut index: i32 = -1;
+    let mut keys = Vec::<String>::new();
+    const KEY_HISTORY_SIZE: usize = 32;
+
+    if data.is_empty() {
+        return Ok(result);
+    }
+
     let mut bitstream = BitStream::new(data);
 
-    for i in 0..s.get_num_entries() {
+    for _ in 0..s.get_num_entries() {
         let increment = bitstream.read_bool()?;
 
         if increment {
@@ -365,18 +382,58 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<()> {
         }
 
         let has_key = bitstream.read_bool()?;
+        let mut key = String::new();
 
         if has_key {
             let use_history = bitstream.read_bool()?;
-            let position = bitstream.read_bits(5)?;
-            let size = bitstream.read_bits(5)?;
-            const KEY_HISTORY_SIZE: u32 = 32;
 
-            // if position >= key_history_size {
-            //     key.push_str(&bitstream.read_string()?);
-            // }
+            if use_history {
+                let position = bitstream.read_bits(5)? as usize;
+                let size = bitstream.read_bits(5)? as usize;
+
+                if position >= KEY_HISTORY_SIZE {
+                    key.push_str(&bitstream.read_string().unwrap()); // FIXME
+                } else {
+                    let ref string = keys[position as usize];
+
+                    if size as usize > string.chars().count() {
+                        key.push_str(string);
+                    } else {
+                        let s: String = string.chars().take(size as usize).collect();
+                        key.push_str(&s);
+                    }
+                    key.push_str(&bitstream.read_string().unwrap()); // FIXME
+                }
+            } else {
+                key = bitstream.read_string().unwrap(); // FIXME
+            }
+
+            if keys.len() >= KEY_HISTORY_SIZE {
+                // TOVERIFY
+                keys.pop();
+                keys.push(key.clone());
+            }
         }
+
+        let has_value = bitstream.read_bool()?;
+        let mut value = Vec::new();
+
+        if has_value {
+            if s.get_user_data_fixed_size() {
+                value = bitstream.read_bits_as_bytes(s.get_user_data_size() as usize)?;
+            } else {
+                let size = bitstream.read_bits(14)?;
+                bitstream.read_bits(3)?;
+                value = bitstream.read_bytes(size as usize)?;
+            }
+        }
+
+        result.push(StringTableItem {
+            index: index,
+            key: key,
+            value: value,
+        });
     }
 
-    Ok(())
+    Ok(result)
 }

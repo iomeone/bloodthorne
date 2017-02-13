@@ -130,6 +130,20 @@ impl BitStream {
 
         String::from_utf8(bytes).map_err(ReadStringError::Utf8Error)
     }
+
+    pub fn read_bits_as_bytes(&mut self, n: usize) -> io::Result<Vec<u8>> {
+        let mut bytes = Vec::new();
+        let bytes_count = (n / 8) as usize;
+
+        for _ in 0..bytes_count {
+            bytes.push(self.next_byte()?);
+        }
+
+        let bits_remaining = (n - 8 * bytes_count) as u8;
+        bytes.push(self.read_bits(bits_remaining)? as u8);
+
+        Ok(bytes)
+    }
 }
 
 #[cfg(test)]
@@ -322,5 +336,13 @@ mod tests {
         let mut b = BitStream::new(vec![72, 101, 108, 108, 111, 0]);
 
         assert_eq!(b.read_string().unwrap(), "Hello");
+    }
+
+    #[test]
+    fn test_bits_as_bytes() {
+        let mut b = BitStream::new(vec![0, 1, 2, 0b0000_00101]);
+
+        assert_eq!(b.read_bits_as_bytes(3 * 8 + 2).unwrap(),
+                   [0, 1, 2, 0b0000_00001]);
     }
 }
