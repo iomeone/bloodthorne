@@ -417,6 +417,12 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
                 keys.pop();
                 keys.push(key.clone());
             }
+
+            println!("increment={} has_key={} use_history={} key={}",
+                     increment,
+                     has_key,
+                     use_history,
+                     key);
         }
 
         let has_value = bitstream.read_bool()?;
