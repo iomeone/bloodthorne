@@ -353,6 +353,7 @@ struct StringTableItem {
 }
 
 fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableItem>> {
+    println!("-----");
     let mut result = Vec::new();
     let buf = s.get_string_data();
     let mut data: Vec<u8> = buf.to_vec();
@@ -375,6 +376,7 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
     }
 
     let mut bitstream = BitStream::new(data);
+    println!("entries={}", s.get_num_entries());
 
     for _ in 0..s.get_num_entries() {
         let increment = bitstream.read_bool()?;
@@ -443,6 +445,8 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
                 value = bitstream.read_bytes(size as usize)?;
             }
         }
+
+        println!("has_value={}", has_value);
 
         result.push(StringTableItem {
             index: index,
