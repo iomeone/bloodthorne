@@ -25,6 +25,7 @@ use std::path::Path;
 use std::fs::File;
 use std::string::String;
 use std::vec::Vec;
+use std::collections::VecDeque;
 
 macro_rules! call_if_exists {
     ($f:expr, $c:expr) => {
@@ -368,7 +369,7 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
     }
 
     let mut index: i32 = -1;
-    let mut keys = Vec::<String>::new();
+    let mut keys = VecDeque::<String>::new();
     const KEY_HISTORY_SIZE: usize = 32;
 
     if data.is_empty() {
@@ -421,10 +422,10 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
             }
 
             if keys.len() >= KEY_HISTORY_SIZE {
-                // TO VERIFY
-                keys.pop();
+                keys.pop_front();
             }
-            keys.push(key.clone());
+
+            keys.push_back(key.clone());
 
             println!("increment={} has_key={} use_history={} key={}",
                      increment,
