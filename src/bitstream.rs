@@ -350,8 +350,17 @@ mod tests {
         let mut b = BitStream::new(vec![0b1110_0001, 0, 0]);
         b.read_bits(1).ok();
 
-        // "p" is 0b1110_0000
+        // "p" is 0b0111_0000
         assert_eq!(b.read_string().unwrap(), "p");
+    }
+
+    #[test]
+    fn test_read_bits_then_string() {
+        //                                15  22       112 == "p"   65 == "A"
+        let mut b = BitStream::new(vec![0b111_10110, 0b110000_01, 0b0000001_01, 0b000000_01, 0]);
+        assert_eq!(b.read_bits(5).unwrap(), 22);
+        assert_eq!(b.read_bits(5).unwrap(), 15);
+        assert_eq!(b.read_string().unwrap(), "pA");
     }
 
     #[test]
