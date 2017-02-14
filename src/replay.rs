@@ -250,7 +250,7 @@ impl Replay {
                     call_if_exists!(self.callbacks.on_CSVCMsg_CreateStringTable, &e);
 
                     let string_tables = handle_string_table(&e)?;
-                    println!("String tables: {:?}", string_tables);
+                    // println!("String tables: {:?}", string_tables);
                 }
                 117 => {
                     // EBaseUserMessages::UM_SayText
@@ -408,6 +408,12 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
                     }
                     key.push_str(&bitstream.read_string().unwrap()); // FIXME
                 }
+
+                println!("position={} size={} keys.len()={} key={}",
+                         position,
+                         size,
+                         keys.len(),
+                         key);
             } else {
                 key = bitstream.read_string().unwrap(); // FIXME
             }
