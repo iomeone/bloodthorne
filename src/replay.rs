@@ -393,7 +393,7 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
 
                 if position >= keys.len() {
                     key.push_str(&bitstream.read_string().unwrap()); // FIXME
-                    println!("pos > keys: {}", key);
+                    println!("pos > keys: pos = {} size = {} key = {}", key);
                 } else {
                     let ref string = keys[position as usize];
 
