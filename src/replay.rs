@@ -18,14 +18,14 @@ use dota::usermessages::{CUserMessageSayText2, CUserMessageSayText, CUserMessage
 
 use callback::Callbacks;
 use bitstream::BitStream;
-use string_table::StringTableItem;
+use string_table::{StringTableItem, StringTable, StringTables};
 
 use std::io::{Result, Error, Read, ErrorKind};
 use std::path::Path;
 use std::fs::File;
 use std::string::String;
 use std::vec::Vec;
-
+use std::cell::RefCell;
 
 macro_rules! call_if_exists {
     ($f:expr, $c:expr) => {
@@ -59,8 +59,8 @@ macro_rules! call_if_exists {
 /// ```
 pub struct Replay {
     bytes: Vec<u8>,
-    pub callbacks: Callbacks, 
-    // string_tables: StringTables,
+    pub callbacks: Callbacks,
+    string_tables: RefCell<StringTables>,
 }
 
 impl Replay {
@@ -68,6 +68,7 @@ impl Replay {
         Ok(Replay {
             bytes: bytes,
             callbacks: Callbacks::new(),
+            string_tables: RefCell::new(StringTables::new()),
         })
     }
 
@@ -104,6 +105,38 @@ impl Replay {
                 return Err(Error::new(ErrorKind::Other, "EDemoCommands::DEM_Error found"));
             }
         }
+    }
+
+    // TODO
+    fn on_string_table(&self, s: &CSVCMsg_CreateStringTable) -> Result<()> {
+        let buf = s.get_string_data();
+        let mut data: Vec<u8> = buf.to_vec();
+
+        if s.get_data_compressed() {
+            if &buf[0..4] == b"LZSS" {
+                return Err(Error::new(ErrorKind::InvalidData, "LZSS not supported"));
+            }
+
+            let mut decoder = Decoder::new();
+            data = decoder.decompress_vec(&buf).map_err(Error::from)?;
+        }
+
+        let table_items = StringTableItem::parse_string_table(data,
+                                                              s.get_num_entries(),
+                                                              s.get_user_data_fixed_size(),
+                                                              s.get_user_data_size())?;
+
+        {
+            let mut tables = self.string_tables.borrow_mut();
+            let mut table = StringTable::new(s, tables.next_index());
+            tables.incr_next_index();
+            table.add_items(table_items);
+            tables.add_table(table);
+        }
+
+        // TODO: "instancebaseline"
+
+        Ok(())
     }
 
     fn handle_outer_message_by_type(&self, m: &OuterMessage) -> Result<()> {
@@ -251,7 +284,7 @@ impl Replay {
                     let e = protobuf::parse_from_bytes::<CSVCMsg_CreateStringTable>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CSVCMsg_CreateStringTable, &e);
 
-                    on_string_table(&e)?;
+                    self.on_string_table(&e)?;
                 }
                 117 => {
                     // EBaseUserMessages::UM_SayText
@@ -344,26 +377,4 @@ impl PacketData {
 
         Ok(res)
     }
-}
-
-// TODO
-fn on_string_table(s: &CSVCMsg_CreateStringTable) -> Result<()> {
-    let buf = s.get_string_data();
-    let mut data: Vec<u8> = buf.to_vec();
-
-    if s.get_data_compressed() {
-        if &buf[0..4] == b"LZSS" {
-            return Err(Error::new(ErrorKind::InvalidData, "LZSS not supported"));
-        }
-
-        let mut decoder = Decoder::new();
-        data = decoder.decompress_vec(&buf).map_err(Error::from)?;
-    }
-
-    let table_items = StringTableItem::parse_string_table(data,
-                                                          s.get_num_entries(),
-                                                          s.get_user_data_fixed_size(),
-                                                          s.get_user_data_size())?;
-
-    Ok(())
 }

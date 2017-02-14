@@ -5,26 +5,13 @@ use std::vec::Vec;
 use std::io::Result;
 
 use bitstream::BitStream;
+use dota::netmessages::CSVCMsg_CreateStringTable;
 
 #[derive(Debug)]
 pub struct StringTableItem {
     index: i32,
     key: String,
     value: Vec<u8>,
-}
-
-pub struct StringTable {
-    index: i32,
-    name: String,
-    items: HashMap<i32, StringTableItem>,
-    user_data_fixed_size: bool,
-    user_data_size: i32,
-}
-
-pub struct StringTables {
-    index_to_tables: HashMap<i32, StringTable>,
-    name_to_index: HashMap<String, i32>,
-    next_index: i32,
 }
 
 impl StringTableItem {
@@ -107,5 +94,60 @@ impl StringTableItem {
         }
 
         Ok(result)
+    }
+}
+
+pub struct StringTable {
+    index: i32,
+    name: String,
+    items: HashMap<i32, StringTableItem>,
+    user_data_fixed_size: bool,
+    user_data_size: i32,
+}
+
+impl StringTable {
+    pub fn new(s: &CSVCMsg_CreateStringTable, index: i32) -> StringTable {
+        StringTable {
+            index: index,
+            name: s.get_name().to_string(),
+            items: HashMap::new(),
+            user_data_fixed_size: s.get_user_data_fixed_size(),
+            user_data_size: s.get_user_data_size(),
+        }
+    }
+
+    pub fn add_items(&mut self, items: Vec<StringTableItem>) {
+        for item in items {
+            self.items.insert(item.index, item);
+        }
+    }
+}
+
+pub struct StringTables {
+    index_to_tables: HashMap<i32, StringTable>,
+    name_to_index: HashMap<String, i32>,
+    next_index: i32,
+}
+
+impl StringTables {
+    pub fn new() -> StringTables {
+        StringTables {
+            index_to_tables: HashMap::new(),
+            name_to_index: HashMap::new(),
+            next_index: 0,
+        }
+    }
+
+    pub fn add_table(&mut self, table: StringTable) {
+        self.name_to_index.insert(table.name.clone(), table.index);
+        self.index_to_tables.insert(table.index, table);
+    }
+
+    pub fn incr_next_index(&mut self) {
+        self.next_index += 1;
+    }
+
+    pub fn next_index(&self) -> i32 {
+        self.next_index
     }
 }
