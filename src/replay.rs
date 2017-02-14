@@ -406,10 +406,11 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
                 }
             } else {
                 key = bitstream.read_string().unwrap(); // FIXME
+                println!("No history: key = {}", key);
             }
 
             if keys.len() >= KEY_HISTORY_SIZE {
-                // TOVERIFY
+                // TO VERIFY
                 keys.pop();
                 keys.push(key.clone());
             }
