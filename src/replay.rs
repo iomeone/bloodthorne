@@ -390,32 +390,20 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
             if use_history {
                 let position = bitstream.read_bits(5)? as usize;
                 let size = bitstream.read_bits(5)? as usize;
-                if position == 22 && size == 15 {
-                    println!("Bytes: {:?}",
-                             [bitstream.next_byte(), bitstream.next_byte(), bitstream.next_byte()]);
-                }
 
                 if position >= keys.len() {
                     key.push_str(&bitstream.read_string().unwrap()); // FIXME
-                    println!("pos > keys: pos = {} size = {} key = {}",
-                             position,
-                             size,
-                             key);
                 } else {
                     let ref string = keys[position as usize];
 
                     if size as usize > string.chars().count() {
                         key.push_str(string);
-                        println!("size > chars: {}", key);
                     } else {
                         let s: String = string.chars().take(size as usize).collect();
                         key.push_str(&s);
-                        println!("size <= chars: {}", key);
                     }
                     key.push_str(&bitstream.read_string().unwrap()); // FIXME
                 }
-
-                println!("Use history: end key = {}", key);
             } else {
                 key = bitstream.read_string().unwrap(); // FIXME
             }
