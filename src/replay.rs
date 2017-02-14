@@ -421,8 +421,8 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
             if keys.len() >= KEY_HISTORY_SIZE {
                 // TO VERIFY
                 keys.pop();
-                keys.push(key.clone());
             }
+            keys.push(key.clone());
 
             println!("increment={} has_key={} use_history={} key={}",
                      increment,
