@@ -358,6 +358,10 @@ fn handle_string_table(s: &CSVCMsg_CreateStringTable) -> Result<Vec<StringTableI
     let mut data: Vec<u8> = buf.to_vec();
 
     if s.get_data_compressed() {
+        if &buf[0..4] == b"LZSS" {
+            return Err(Error::new(ErrorKind::InvalidData, "LZSS not supported"));
+        }
+
         let mut decoder = Decoder::new();
         data = decoder.decompress_vec(&buf).map_err(Error::from)?;
     }
