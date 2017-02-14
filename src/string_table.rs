@@ -97,6 +97,7 @@ impl StringTableItem {
     }
 }
 
+#[derive(Debug)]
 pub struct StringTable {
     index: i32,
     name: String,
@@ -123,6 +124,7 @@ impl StringTable {
     }
 }
 
+#[derive(Debug)]
 pub struct StringTables {
     index_to_tables: HashMap<i32, StringTable>,
     name_to_index: HashMap<String, i32>,
