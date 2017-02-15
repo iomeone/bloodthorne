@@ -135,4 +135,22 @@ mod tests {
             _ => panic!(format!("Wrong kv pair: {:?}", kv)),
         };
     }
+
+    #[test]
+    fn test_read_string() {
+        /// `1` announces a (string, string) pair
+        /// [110, 97, 109, 101, 0] is "name\0"
+        /// `[66, 114, 111, 107, 101, 110, 0]` is "Broken\0"
+        let mut parser = Parser::new(vec![1, 110, 97, 109, 101, 0, 66, 114, 111, 107, 101, 110, 0]);
+        let kv = parser.parse_key_value();
+
+        match kv {
+            Ok((string1, VBKVValue::String(string2))) => {
+                if string1 != "name" || string2 != "Broken" {
+                    panic!("Wrong string")
+                }
+            }
+            _ => panic!(format!("Wrong kv pair: {:?}", kv)),
+        };
+    }
 }

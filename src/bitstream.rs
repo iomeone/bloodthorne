@@ -146,19 +146,16 @@ impl BitStream {
         Ok(bytes)
     }
 
-    // TODO
     pub fn read_i32(&mut self) -> io::Result<i32> {
         let mut cursor = Cursor::new(self.read_bytes(4)?);
         cursor.read_i32::<LittleEndian>()
     }
 
-    // TODO
     pub fn read_u64(&mut self) -> io::Result<u64> {
         let mut cursor = Cursor::new(self.read_bytes(8)?);
         cursor.read_u64::<LittleEndian>()
     }
 
-    // TODO
     pub fn read_f32(&mut self) -> io::Result<f32> {
         let mut cursor = Cursor::new(self.read_bytes(4)?);
         cursor.read_f32::<LittleEndian>()
