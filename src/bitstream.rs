@@ -1,15 +1,8 @@
 use std::io::{self, Error, Cursor};
 use std::string::FromUtf8Error;
-use std::result::Result;
 use std::num::Wrapping;
 
 use byteorder::{LittleEndian, ReadBytesExt};
-
-#[derive(Debug)]
-pub enum ReadStringError {
-    IOError(Error),
-    Utf8Error(FromUtf8Error),
-}
 
 pub struct BitStream {
     buffer: Vec<u8>,
@@ -124,11 +117,11 @@ impl BitStream {
         self.read_bits(1).map(|b| b == 1)
     }
 
-    pub fn read_string(&mut self) -> Result<String, ReadStringError> {
+    pub fn read_string(&mut self) -> io::Result<String> {
         let mut bytes = Vec::new();
 
         loop {
-            let byte = self.read_byte().map_err(ReadStringError::IOError)?;
+            let byte = self.read_byte()?;
 
             if byte == 0 {
                 break;
@@ -137,7 +130,7 @@ impl BitStream {
             bytes.push(byte);
         }
 
-        String::from_utf8(bytes).map_err(ReadStringError::Utf8Error)
+        Ok(String::from_utf8_lossy(&bytes).into_owned())
     }
 
     pub fn read_bits_as_bytes(&mut self, n: usize) -> io::Result<Vec<u8>> {

@@ -17,6 +17,7 @@ enum VPKFlag {
 }
 
 enum VPKValue {
+    None,
     String(String),
     I32(i32),
     F32(f32),
@@ -26,23 +27,29 @@ enum VPKValue {
     U64(u64),
 }
 
-type KeyValue = (String, VPKValue);
+type KeyValue = (VPKValue, VPKValue);
 
 pub struct Parser {
     bitstream: BitStream,
 }
 
 impl Parser {
-    pub fn parse_key_value(&mut self) -> Result<Option<KeyValue>> {
+    pub fn parse_key_value(&mut self) -> Result<KeyValue> {
         if self.bitstream.remaining_bytes() == 0 {
-            return Ok(None);
+            return Ok((VPKValue::None, VPKValue::None));
         }
 
         let flag = self.bitstream.read_byte()?;
 
         match flag {
-            flag if flag == VPKFlag::Skip as u8 => Ok(None),
-            _ => unimplemented!(),
+            flag if flag == VPKFlag::Skip as u8 => Ok((VPKValue::None, VPKValue::None)),
+            flag if flag == VPKFlag::None as u8 => unimplemented!(),
+            flag if flag == VPKFlag::String as u8 => {
+                let k = VPKValue::String(self.bitstream.read_string()?);
+                let v = VPKValue::String(self.bitstream.read_string()?);
+                Ok((k, v))
+            }
+            _ => unreachable!(),
         }
     }
 
