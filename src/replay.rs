@@ -19,6 +19,7 @@ use callback::Callbacks;
 use string_table::{StringTableItem, StringTable, StringTables};
 use outer_message::OuterMessage;
 use packet::PacketData;
+use send_tables;
 
 use std::io::{Result, Error, Read, ErrorKind};
 use std::path::Path;
@@ -180,12 +181,13 @@ impl Replay {
             4 => {
                 let c = protobuf::parse_from_bytes::<CDemoSendTables>(&m.data)?;
                 call_if_exists!(self.callbacks.on_CDemoSendTables, &c);
+                self.on_send_tables(c);
             } // EDemoCommands::DEM_SendTables
             5 => {
                 let c = protobuf::parse_from_bytes::<CDemoClassInfo>(&m.data)?;
                 call_if_exists!(self.callbacks.on_CDemoClassInfo, &c);
 
-                self.on_CDemoClassInfo(&c);
+                self.on_class_info(c);
             } // EDemoCommands::DEM_ClassInfo
             6 => {
                 let c = protobuf::parse_from_bytes::<CDemoStringTables>(&m.data)?;
@@ -342,14 +344,19 @@ impl Replay {
         Ok(())
     }
 
-    fn on_CDemoClassInfo(&self, c: &CDemoClassInfo) {
+    fn on_class_info(&self, mut c: CDemoClassInfo) {
         let mut index_to_class_name = self.index_to_class_name.borrow_mut();
-        for class in c.get_classes() {
+        let mut classes = c.take_classes();
+        for class in classes.iter_mut() {
             index_to_class_name.insert(class.get_class_id(), class.take_network_name());
 
             // TODO: check if class info already exists from send tables
         }
 
         // TODO: update baseline info
+    }
+
+    fn on_send_tables(&self, s: CDemoSendTables) {
+        let _todo = send_tables::parse_send_tables(s);
     }
 }
