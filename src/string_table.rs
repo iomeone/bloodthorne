@@ -101,7 +101,7 @@ impl StringTableItem {
 pub struct StringTable {
     index: i32,
     name: String,
-    items: HashMap<i32, StringTableItem>,
+    index_to_items: HashMap<i32, StringTableItem>,
     user_data_fixed_size: bool,
     user_data_size: i32,
 }
@@ -111,7 +111,7 @@ impl StringTable {
         StringTable {
             index: index,
             name: s.get_name().to_string(),
-            items: HashMap::new(),
+            index_to_items: HashMap::new(),
             user_data_fixed_size: s.get_user_data_fixed_size(),
             user_data_size: s.get_user_data_size(),
         }
@@ -119,7 +119,7 @@ impl StringTable {
 
     pub fn add_items(&mut self, items: Vec<StringTableItem>) {
         for item in items {
-            self.items.insert(item.index, item);
+            self.index_to_items.insert(item.index, item);
         }
     }
 
@@ -129,6 +129,21 @@ impl StringTable {
 
     pub fn user_data_size(&self) -> i32 {
         self.user_data_size
+    }
+
+    pub fn update_or_create_item(&mut self, item: StringTableItem) {
+        if !self.index_to_items.contains_key(&item.index) {
+            self.index_to_items.insert(item.index, item); // TODO handle potential error
+        } else {
+            let old_item = self.index_to_items.get_mut(&item.index).unwrap();
+            if !item.key.is_empty() && item.key != old_item.key {
+                old_item.key = item.key;
+            }
+
+            if item.value.len() > 0 {
+                old_item.value = item.value;
+            }
+        }
     }
 }
 

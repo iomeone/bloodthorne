@@ -152,7 +152,9 @@ impl Replay {
                                                         table.user_data_fixed_size(),
                                                         table.user_data_size())?;
 
-        // TODO apply updates
+        for item in items {
+            table.update_or_create_item(item);
+        }
 
         // TODO: "instancebaseline"
 
