@@ -18,7 +18,7 @@ enum VBKVFlag {
 }
 
 #[derive(PartialEq, Debug)]
-enum VBKVValue {
+pub enum VBKVValue {
     None,
     Object(HashMap<String, Box<VBKVValue>>),
     String(String),
@@ -30,40 +30,40 @@ enum VBKVValue {
     U64(u64),
 }
 
-type KeyValue = (VBKVValue, VBKVValue);
+type KeyValue = (String, VBKVValue);
 
 pub struct Parser {
     bitstream: BitStream,
 }
 
 impl Parser {
-    fn parse_key_value(&mut self) -> Result<KeyValue> {
+    pub fn parse_key_value(&mut self) -> Result<KeyValue> {
         if self.bitstream.remaining_bytes() == 0 {
-            return Ok((VBKVValue::None, VBKVValue::None));
+            return Ok((String::from(""), VBKVValue::None));
         }
 
         let flag = self.bitstream.read_byte()?;
 
         match flag {
-            flag if flag == VBKVFlag::Skip as u8 => Ok((VBKVValue::None, VBKVValue::None)),
+            flag if flag == VBKVFlag::Skip as u8 => Ok((String::from(""), VBKVValue::None)),
             flag if flag == VBKVFlag::Object as u8 => self.parse_object(),
             flag if flag == VBKVFlag::String as u8 => {
-                let k = VBKVValue::String(self.bitstream.read_string()?);
+                let k = self.bitstream.read_string()?;
                 let v = VBKVValue::String(self.bitstream.read_string()?);
                 Ok((k, v))
             }
             flag if flag == VBKVFlag::I32 as u8 => {
-                let k = VBKVValue::String(self.bitstream.read_string()?);
+                let k = self.bitstream.read_string()?;
                 let v = VBKVValue::I32(self.bitstream.read_i32()?);
                 Ok((k, v))
             }
             flag if flag == VBKVFlag::F32 as u8 => {
-                let k = VBKVValue::String(self.bitstream.read_string()?);
+                let k = self.bitstream.read_string()?;
                 let v = VBKVValue::F32(self.bitstream.read_f32()?);
                 Ok((k, v))
             }
             flag if flag == VBKVFlag::U64 as u8 => {
-                let k = VBKVValue::String(self.bitstream.read_string()?);
+                let k = self.bitstream.read_string()?;
                 let v = VBKVValue::U64(self.bitstream.read_u64()?);
                 Ok((k, v))
             }
@@ -75,7 +75,7 @@ impl Parser {
 
     fn parse_object(&mut self) -> Result<KeyValue> {
         let mut object = HashMap::new();
-        let name = VBKVValue::String(self.bitstream.read_string()?);
+        let name = self.bitstream.read_string()?;
 
         loop {
             let (k, v) = self.parse_key_value()?;
@@ -83,12 +83,7 @@ impl Parser {
                 break;
             }
 
-            if let VBKVValue::String(k) = k {
-                object.insert(k, Box::new(v));
-            } else {
-                return Err(Error::new(ErrorKind::InvalidData,
-                                      format!("Invalid object key type: {:?}", k)));
-            }
+            object.insert(k, Box::new(v));
 
         }
 
@@ -97,5 +92,24 @@ impl Parser {
 
     pub fn new(bytes: Vec<u8>) -> Parser {
         Parser { bitstream: BitStream::new(bytes) }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use vbkv::{Parser, VBKVValue};
+
+    #[test]
+    fn test_read_string() {
+        let mut parser = Parser::new(vec![2, 118, 101, 114, 115, 105, 111, 110, 0, 1, 0, 0, 0]);
+
+        match parser.parse_key_value() {
+            Ok((string, VBKVValue::I32(1))) => {
+                if string != "version" {
+                    panic!("Wrong string")
+                }
+            }
+            _ => panic!(""),
+        };
     }
 }

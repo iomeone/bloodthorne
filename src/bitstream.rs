@@ -1,5 +1,4 @@
-use std::io::{self, Error, Cursor};
-use std::string::FromUtf8Error;
+use std::io::{self, Cursor};
 use std::num::Wrapping;
 
 use byteorder::{LittleEndian, ReadBytesExt};
