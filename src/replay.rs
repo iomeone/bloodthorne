@@ -96,7 +96,6 @@ impl Replay {
             self.handle_outer_message_by_type(&outer_message)?;
 
             if outer_message.kind == 0 {
-                println!("String tables: {:?}", *self.string_tables.borrow());
                 // Stop
                 return Ok(());
             }
