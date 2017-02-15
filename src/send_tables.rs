@@ -16,8 +16,6 @@ pub fn parse_send_tables(mut s: CDemoSendTables) -> Result<()> {
     let flattened_serializer =
         protobuf::parse_from_bytes::<CSVCMsg_FlattenedSerializer>(&buffer).map_err(Error::from)?;
 
-
-    println!("flattened_serializer: {:?}", flattened_serializer);
     // TODO
     Ok(())
 }
