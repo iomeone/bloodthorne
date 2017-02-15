@@ -14,7 +14,7 @@ enum VBKVFlag {
     // Color = 6,
     U64 = 7,
     // End = 8,
-    Skip = 11,
+    EndOfField = 11,
 }
 
 #[derive(PartialEq, Debug)]
@@ -45,7 +45,7 @@ impl Parser {
         let flag = self.bitstream.read_byte()?;
 
         match flag {
-            flag if flag == VBKVFlag::Skip as u8 => Ok((String::from(""), VBKVValue::None)),
+            flag if flag == VBKVFlag::EndOfField as u8 => Ok((String::from(""), VBKVValue::None)),
             flag if flag == VBKVFlag::Object as u8 => self.parse_object(),
             flag if flag == VBKVFlag::String as u8 => {
                 let k = self.bitstream.read_string()?;
@@ -109,9 +109,7 @@ mod tests {
 
         match kv {
             Ok((string, VBKVValue::I32(1))) => {
-                if string != "version" {
-                    panic!("Wrong string")
-                }
+                assert_eq!(string, "version");
             }
             _ => panic!(format!("Wrong kv pair: {:?}", kv)),
         };
@@ -128,9 +126,7 @@ mod tests {
 
         match kv {
             Ok((string, VBKVValue::U64(2983930624))) => {
-                if string != "matchid" {
-                    panic!("Wrong string")
-                }
+                assert_eq!(string, "matchid");
             }
             _ => panic!(format!("Wrong kv pair: {:?}", kv)),
         };
@@ -146,9 +142,97 @@ mod tests {
 
         match kv {
             Ok((string1, VBKVValue::String(string2))) => {
-                if string1 != "name" || string2 != "Broken" {
-                    panic!("Wrong string")
+                assert_eq!(string1, "name");
+                assert_eq!(string2, "Broken");
+            }
+            _ => panic!(format!("Wrong kv pair: {:?}", kv)),
+        };
+    }
+
+    #[test]
+    fn test_read_simple_object() {
+        /// `0` announces a (string, object) pair
+        /// In json the object would look like:
+        /// {
+        ///    "m_iName": "Announcer"
+        /// }
+        let mut bytes = Vec::new();
+        bytes.push(0);
+        bytes.extend(b"npc_dota_hero_announcer\0");
+        bytes.push(1); // String incoming
+        bytes.extend(b"m_iName\0");
+        bytes.extend(b"Announcer\0");
+        bytes.push(11);
+        // bytes.push(11);
+
+        let mut parser = Parser::new(bytes);
+        let kv = parser.parse_key_value();
+
+        match kv {
+            Ok((string, VBKVValue::Object(hashmap))) => {
+                assert_eq!(string, "npc_dota_hero_announcer");
+                assert_eq!(hashmap.len(), 1);
+                let ref box_vbkv_announcer_name: Box<VBKVValue> = *(hashmap.get("m_iName")
+                    .unwrap());
+
+                if let VBKVValue::String(ref announcer_name) = **box_vbkv_announcer_name {
+                    assert_eq!(announcer_name, "Announcer");
+                } else {
+                    panic!();
                 }
+
+            }
+            _ => panic!("Wrong kv pair"),
+        };
+    }
+
+    #[test]
+    fn test_read_object() {
+        /// `0` announces a (string, object) pair
+        /// In json the object would look like:
+        //// {
+        ///    "npc_dota_hero_announcer": {
+        ///        "m_iName": "Announcer"
+        ///     }
+        /// }
+        let mut bytes = vec![0];
+        bytes.extend(b"Units\0");
+
+        bytes.push(0); // Object incoming
+        bytes.extend(b"npc_dota_hero_announcer\0");
+        bytes.push(1); // String incoming
+        bytes.extend(b"m_iName\0");
+        bytes.extend(b"Announcer\0");
+        bytes.push(11);
+
+        bytes.push(11);
+
+        let mut parser = Parser::new(bytes);
+        let kv = parser.parse_key_value();
+
+        match kv {
+            Ok((string, VBKVValue::Object(hashmap1))) => {
+                assert_eq!(string, "Units");
+                assert_eq!(hashmap1.len(), 1);
+                let ref box_vbkv_obj2: Box<VBKVValue> = *(hashmap1.get("npc_dota_hero_announcer")
+                    .unwrap());
+
+                match **box_vbkv_obj2 {
+                    VBKVValue::Object(ref obj2) => {
+                        assert_eq!(obj2.len(), 1);
+                        let ref box_vbkv_announcer_name = *(obj2.get("m_iName").unwrap());
+
+
+                        if let VBKVValue::String(ref announcer_name) = **box_vbkv_announcer_name {
+                            assert_eq!(announcer_name, "Announcer");
+                        } else {
+                            panic!();
+                        }
+                    }
+                    _ => panic!("Wrong kv pair"),
+                }
+
+
             }
             _ => panic!(format!("Wrong kv pair: {:?}", kv)),
         };
