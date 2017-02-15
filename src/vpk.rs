@@ -6,12 +6,12 @@ use bitstream::BitStream;
 enum VPKFlag {
     None = 0,
     String = 1,
-    Int = 2,
-    Float = 3,
+    I32 = 2,
+    F32 = 3,
     Pointer = 4,
     WideString = 5,
     Color = 6,
-    Uint64 = 7,
+    U64 = 7,
     End = 8,
     Skip = 11,
 }
@@ -49,7 +49,22 @@ impl Parser {
                 let v = VPKValue::String(self.bitstream.read_string()?);
                 Ok((k, v))
             }
-            _ => unreachable!(),
+            flag if flag == VPKFlag::I32 as u8 => {
+                let k = VPKValue::String(self.bitstream.read_string()?);
+                let v = VPKValue::I32(self.bitstream.read_i32()?);
+                Ok((k, v))
+            }
+            flag if flag == VPKFlag::F32 as u8 => {
+                let k = VPKValue::String(self.bitstream.read_string()?);
+                let v = VPKValue::F32(self.bitstream.read_f32()?);
+                Ok((k, v))
+            }
+            flag if flag == VPKFlag::U64 as u8 => {
+                let k = VPKValue::String(self.bitstream.read_string()?);
+                let v = VPKValue::U64(self.bitstream.read_u64()?);
+                Ok((k, v))
+            }
+            _ => Err(Error::new(ErrorKind::InvalidData, format!("Unknown vpk flag {}", flag))),
         }
     }
 
