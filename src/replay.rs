@@ -26,6 +26,7 @@ use std::fs::File;
 use std::string::String;
 use std::vec::Vec;
 use std::cell::RefCell;
+use std::collections::HashMap;
 
 macro_rules! call_if_exists {
     ($f:expr, $c:expr) => {
@@ -61,6 +62,7 @@ pub struct Replay {
     bytes: Vec<u8>,
     pub callbacks: Callbacks,
     string_tables: RefCell<StringTables>,
+    index_to_class_name: RefCell<HashMap<i32, String>>,
 }
 
 impl Replay {
@@ -335,5 +337,16 @@ impl Replay {
         }
 
         Ok(())
+    }
+
+    fn on_CDemoClassInfo(&self, c: &CDemoClassInfo) {
+        let mut index_to_class_name = self.index_to_class_name.borrow_mut();
+        for class in c.get_classes() {
+            index_to_class_name.insert(class.get_class_id(), class.get_network_name());
+
+            // TODO: check if class info already exists from send tables
+        }
+
+        // TODO: update baseline info
     }
 }
