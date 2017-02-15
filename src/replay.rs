@@ -4,10 +4,9 @@ use protobuf::stream::CodedInputStream;
 extern crate snap;
 use self::snap::Decoder;
 
-use dota::demo::{EDemoCommands, CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket,
-                 CDemoSendTables, CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd,
-                 CDemoCustomData, CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame,
-                 CDemoSpawnGroups};
+use dota::demo::{CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket, CDemoSendTables,
+                 CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd, CDemoCustomData,
+                 CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame, CDemoSpawnGroups};
 use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser, CNETMsg_Tick,
                              CNETMsg_StringCmd, CNETMsg_SetConVar, CNETMsg_SignonState,
                              CNETMsg_SpawnGroup_Load, CNETMsg_SpawnGroup_ManifestUpdate,
@@ -17,9 +16,9 @@ use dota::netmessages::{CSVCMsg_ServerInfo, CSVCMsg_CreateStringTable, CSVCMsg_U
 use dota::usermessages::{CUserMessageSayText2, CUserMessageSayText, CUserMessageSayTextChannel};
 
 use callback::Callbacks;
-use bitstream::BitStream;
 use string_table::{StringTableItem, StringTable, StringTables};
 use outer_message::OuterMessage;
+use packet::PacketData;
 
 use std::io::{Result, Error, Read, ErrorKind};
 use std::path::Path;
@@ -336,38 +335,5 @@ impl Replay {
         }
 
         Ok(())
-    }
-}
-
-
-struct PacketData {
-    kind: u32,
-    data: Vec<u8>,
-}
-
-impl PacketData {
-    fn new(bitstream: &mut BitStream) -> Result<PacketData> {
-        let kind = bitstream.read_ubitvarint().map_err(Error::from)?;
-        let size = bitstream.read_u32var().map_err(Error::from)?;
-        let data = bitstream.read_bytes(size as usize).map_err(Error::from)?;
-
-        Ok(PacketData {
-            kind: kind,
-            data: data,
-        })
-    }
-
-    fn from_packet(packet: &CDemoPacket) -> Result<Vec<PacketData>> {
-        let data = packet.get_data().to_vec();
-        let mut bitstream = BitStream::new(data);
-
-        let mut res = Vec::new();
-
-        while bitstream.remaining_bytes() > 0 {
-            let packet_data = PacketData::new(&mut bitstream)?;
-            res.push(packet_data);
-        }
-
-        Ok(res)
     }
 }
