@@ -13,7 +13,7 @@ use dota::networkbasetypes::{CNETMsg_Disconnect, CNETMsg_SplitScreenUser, CNETMs
                              CNETMsg_SpawnGroup_Load, CNETMsg_SpawnGroup_ManifestUpdate,
                              CNETMsg_SpawnGroup_SetCreationTick, CNETMsg_SpawnGroup_Unload,
                              CNETMsg_SpawnGroup_LoadCompleted};
-use dota::netmessages::{CSVCMsg_ServerInfo, CSVCMsg_CreateStringTable};
+use dota::netmessages::{CSVCMsg_ServerInfo, CSVCMsg_CreateStringTable, CSVCMsg_UpdateStringTable};
 use dota::usermessages::{CUserMessageSayText2, CUserMessageSayText, CUserMessageSayTextChannel};
 
 use callback::Callbacks;
@@ -107,8 +107,7 @@ impl Replay {
         }
     }
 
-    // TODO
-    fn on_string_table(&self, s: &CSVCMsg_CreateStringTable) -> Result<()> {
+    fn on_create_string_table(&self, s: &CSVCMsg_CreateStringTable) -> Result<()> {
         let buf = s.get_string_data();
         let mut data: Vec<u8> = buf.to_vec();
 
@@ -133,6 +132,27 @@ impl Replay {
             table.add_items(table_items);
             tables.add_table(table);
         }
+
+        // TODO: "instancebaseline"
+
+        Ok(())
+    }
+
+    fn on_update_string_table(&self, s: &CSVCMsg_UpdateStringTable) -> Result<()> {
+        let mut tables = self.string_tables.borrow_mut();
+        let table = tables.get_table(s.get_table_id());
+        if table.is_none() {
+            return Err(Error::new(ErrorKind::InvalidData, "Update non-existent string table"));
+        }
+
+        let table = table.unwrap();
+
+        let items = StringTableItem::parse_string_table(s.get_string_data().to_vec(),
+                                                        s.get_num_changed_entries(),
+                                                        table.user_data_fixed_size(),
+                                                        table.user_data_size())?;
+
+        // TODO apply updates
 
         // TODO: "instancebaseline"
 
@@ -284,7 +304,14 @@ impl Replay {
                     let e = protobuf::parse_from_bytes::<CSVCMsg_CreateStringTable>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CSVCMsg_CreateStringTable, &e);
 
-                    self.on_string_table(&e)?;
+                    self.on_create_string_table(&e)?;
+                }
+                45 => {
+                    // SVC_Messages::svc_UpdateStringTable
+                    let e = protobuf::parse_from_bytes::<CSVCMsg_UpdateStringTable>(&d.data)?;
+                    call_if_exists!(self.callbacks.on_CSVCMsg_UpdateStringTable, &e);
+
+                    self.on_update_string_table(&e)?;
                 }
                 117 => {
                     // EBaseUserMessages::UM_SayText

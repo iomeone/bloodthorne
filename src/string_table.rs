@@ -122,6 +122,14 @@ impl StringTable {
             self.items.insert(item.index, item);
         }
     }
+
+    pub fn user_data_fixed_size(&self) -> bool {
+        self.user_data_fixed_size
+    }
+
+    pub fn user_data_size(&self) -> i32 {
+        self.user_data_size
+    }
 }
 
 #[derive(Debug)]
@@ -143,6 +151,10 @@ impl StringTables {
     pub fn add_table(&mut self, table: StringTable) {
         self.name_to_index.insert(table.name.clone(), table.index);
         self.index_to_tables.insert(table.index, table);
+    }
+
+    pub fn get_table(&mut self, index: i32) -> Option<&mut StringTable> {
+        self.index_to_tables.get_mut(&index)
     }
 
     pub fn incr_next_index(&mut self) {
