@@ -1,7 +1,9 @@
-use std::io::{self, Error};
+use std::io::{self, Error, Cursor};
 use std::string::FromUtf8Error;
 use std::result::Result;
 use std::num::Wrapping;
+
+use byteorder::{LittleEndian, ReadBytesExt};
 
 #[derive(Debug)]
 pub enum ReadStringError {
@@ -150,6 +152,24 @@ impl BitStream {
         bytes.push(self.read_bits(bits_remaining)? as u8);
 
         Ok(bytes)
+    }
+
+    // TODO
+    pub fn read_i32(&mut self) -> io::Result<i32> {
+        let mut cursor = Cursor::new(self.read_bytes(4)?);
+        cursor.read_i32::<LittleEndian>()
+    }
+
+    // TODO
+    pub fn read_u64(&mut self) -> io::Result<u64> {
+        let mut cursor = Cursor::new(self.read_bytes(8)?);
+        cursor.read_u64::<LittleEndian>()
+    }
+
+    // TODO
+    pub fn read_f32(&mut self) -> io::Result<f32> {
+        let mut cursor = Cursor::new(self.read_bytes(4)?);
+        cursor.read_f32::<LittleEndian>()
     }
 }
 

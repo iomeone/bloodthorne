@@ -1,5 +1,7 @@
 
 extern crate protobuf;
+extern crate byteorder;
+
 mod bitstream;
 mod string_table;
 mod outer_message;
