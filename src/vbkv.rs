@@ -101,15 +101,19 @@ mod tests {
 
     #[test]
     fn test_read_string() {
+        /// `2` announces a (string, i32) pair
+        /// [118, 101, 114, 115, 105, 111, 110, 0] is "version\0"
+        /// `[1, 0, 0, 0]` is the i32
         let mut parser = Parser::new(vec![2, 118, 101, 114, 115, 105, 111, 110, 0, 1, 0, 0, 0]);
+        let kv = parser.parse_key_value();
 
-        match parser.parse_key_value() {
+        match kv {
             Ok((string, VBKVValue::I32(1))) => {
                 if string != "version" {
                     panic!("Wrong string")
                 }
             }
-            _ => panic!(""),
+            _ => panic!(format!("Wrong kv pair: {:?}", kv)),
         };
     }
 }
