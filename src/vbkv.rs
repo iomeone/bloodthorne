@@ -100,7 +100,7 @@ mod tests {
     use vbkv::{Parser, VBKVValue};
 
     #[test]
-    fn test_read_string() {
+    fn test_read_i32() {
         /// `2` announces a (string, i32) pair
         /// [118, 101, 114, 115, 105, 111, 110, 0] is "version\0"
         /// `[1, 0, 0, 0]` is the i32
@@ -110,6 +110,25 @@ mod tests {
         match kv {
             Ok((string, VBKVValue::I32(1))) => {
                 if string != "version" {
+                    panic!("Wrong string")
+                }
+            }
+            _ => panic!(format!("Wrong kv pair: {:?}", kv)),
+        };
+    }
+
+    #[test]
+    fn test_read_u64() {
+        /// `7` announces a (string, u64) pair
+        /// [109, 97, 116, 99, 104, 105, 100, 0] is "matchid\0"
+        /// `[0, 43, 219, 177, 0, 0, 0, 0]` is the u64
+        let mut parser = Parser::new(vec![7, 109, 97, 116, 99, 104, 105, 100, 0, 0, 43, 219, 177,
+                                          0, 0, 0, 0]);
+        let kv = parser.parse_key_value();
+
+        match kv {
+            Ok((string, VBKVValue::U64(2983930624))) => {
+                if string != "matchid" {
                     panic!("Wrong string")
                 }
             }
