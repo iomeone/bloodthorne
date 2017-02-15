@@ -19,6 +19,7 @@ use dota::usermessages::{CUserMessageSayText2, CUserMessageSayText, CUserMessage
 use callback::Callbacks;
 use bitstream::BitStream;
 use string_table::{StringTableItem, StringTable, StringTables};
+use outer_message::OuterMessage;
 
 use std::io::{Result, Error, Read, ErrorKind};
 use std::path::Path;
@@ -338,43 +339,6 @@ impl Replay {
     }
 }
 
-struct OuterMessage {
-    kind: i32,
-    tick: u32,
-    data: Vec<u8>,
-}
-
-impl OuterMessage {
-    fn new(stream: &mut CodedInputStream) -> Result<OuterMessage> {
-        let command = stream.read_uint32()?;
-        let is_compressed_bitmask = EDemoCommands::DEM_IsCompressed as u32;
-        let is_compressed = (command & is_compressed_bitmask) == is_compressed_bitmask;
-
-        let mut kind: i32 = command as i32 & !is_compressed_bitmask as i32;
-        if is_compressed {
-            kind = kind & !is_compressed_bitmask as i32;
-        }
-
-        let mut tick = stream.read_uint32().map_err(Error::from)?;
-        if tick == <u32>::max_value() {
-            tick = 0;
-        }
-
-        let size = stream.read_uint32().map_err(Error::from)?;
-
-        let mut data = stream.read_raw_bytes(size).map_err(Error::from)?;
-        if is_compressed {
-            let mut decoder = Decoder::new();
-            data = decoder.decompress_vec(&data).map_err(Error::from)?;
-        }
-
-        Ok(OuterMessage {
-            kind: kind,
-            tick: tick,
-            data: data,
-        })
-    }
-}
 
 struct PacketData {
     kind: u32,
