@@ -4,6 +4,8 @@ use protobuf::stream::CodedInputStream;
 extern crate snap;
 use self::snap::Decoder;
 
+use regex::Regex;
+
 use dota::demo::{CDemoFileHeader, CDemoFileInfo, CDemoPacket, CDemoFullPacket, CDemoSendTables,
                  CDemoClassInfo, CDemoStringTables, CDemoConsoleCmd, CDemoCustomData,
                  CDemoCustomDataCallbacks, CDemoUserCmd, CDemoSaveGame, CDemoSpawnGroups};
@@ -311,7 +313,7 @@ impl Replay {
                     let e = protobuf::parse_from_bytes::<CSVCMsg_ServerInfo>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CSVCMsg_ServerInfo, &e);
 
-                    self.on_server_info(&e);
+                    self.on_server_info(&e)?;
                 }
                 44 => {
                     // SVC_Messages::svc_CreateStringTable
@@ -349,13 +351,34 @@ impl Replay {
         Ok(())
     }
 
-    fn on_server_info(&mut self, c: &CSVCMsg_ServerInfo) {
+    fn on_server_info(&mut self, c: &CSVCMsg_ServerInfo) -> Result<()> {
         let max_classes = c.get_max_classes() as f32;
         self.class_id_size = (max_classes / (2.0f32).ln()) as u32 + 1;
         debug!("class_id_size: {}", self.class_id_size);
         debug!("game dir: {}", c.get_game_dir());
 
-        self.game_build = 1; // FIXME
+        self.game_build = Replay::get_game_build_from_game_dir(c.get_game_dir())?; // FIXME
+
+        debug!("game build: {}", self.game_build);
+
+        Ok(())
+    }
+
+    fn get_game_build_from_game_dir(game_dir: &str) -> Result<u32> {
+        let re = Regex::new(r"dota_v(\d+)").unwrap();
+
+        let captures =
+            re.captures(game_dir)
+                .ok_or(Error::new(ErrorKind::InvalidData,
+                                  format!("Could not extract game build from game dir: {}",
+                                          game_dir)))?;
+
+        captures[0]
+            .parse::<u32>()
+            .or(Err(Error::new(ErrorKind::InvalidData,
+                               format!("Could not extract game build from game dir: {}",
+                                       game_dir))))
+
     }
 
     fn on_class_info(&mut self, mut c: CDemoClassInfo) {

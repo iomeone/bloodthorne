@@ -5,6 +5,8 @@ extern crate byteorder;
 #[macro_use]
 extern crate log;
 
+extern crate regex;
+
 mod bitstream;
 mod string_table;
 mod outer_message;
