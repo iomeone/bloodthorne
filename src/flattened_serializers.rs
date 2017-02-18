@@ -22,10 +22,10 @@ pub struct DataTableField {
 }
 
 pub struct DataTable {
-    name: String,
-    flags: i32,
-    version: i32,
-    properties: Vec<DataTableProperty>,
+    pub name: String,
+    pub flags: i32,
+    pub version: i32,
+    pub properties: Vec<DataTableProperty>,
 }
 
 pub struct FlattenedSerializers {
