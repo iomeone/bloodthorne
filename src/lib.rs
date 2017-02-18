@@ -2,6 +2,9 @@
 extern crate protobuf;
 extern crate byteorder;
 
+#[macro_use]
+extern crate log;
+
 mod bitstream;
 mod string_table;
 mod outer_message;

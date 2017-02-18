@@ -28,6 +28,7 @@ use std::string::String;
 use std::vec::Vec;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::f32;
 
 macro_rules! call_if_exists {
     ($f:expr, $c:expr) => {
@@ -64,6 +65,8 @@ pub struct Replay {
     pub callbacks: Callbacks,
     string_tables: RefCell<StringTables>,
     index_to_class_name: RefCell<HashMap<i32, String>>,
+    class_id_size: u32,
+    game_build: u32,
 }
 
 impl Replay {
@@ -73,6 +76,8 @@ impl Replay {
             callbacks: Callbacks::new(),
             string_tables: RefCell::new(StringTables::new()),
             index_to_class_name: RefCell::new(HashMap::new()),
+            class_id_size: 0,
+            game_build: 0,
         })
     }
 
@@ -93,7 +98,8 @@ impl Replay {
                                           String::from_utf8_lossy(&self.bytes[0..8]))));
         }
 
-        let mut stream = CodedInputStream::from_bytes(&self.bytes[16..]);
+        let bytes = self.bytes.clone();
+        let mut stream = CodedInputStream::from_bytes(&bytes[16..]);
 
         loop {
             let outer_message = OuterMessage::new(&mut stream)?;
@@ -165,7 +171,7 @@ impl Replay {
         Ok(())
     }
 
-    fn handle_outer_message_by_type(&self, m: &OuterMessage) -> Result<()> {
+    fn handle_outer_message_by_type(&mut self, m: &OuterMessage) -> Result<()> {
         match m.kind {
             -1 => call_if_exists!(self.callbacks.on_CDemoError), // EDemoCommands::DEM_Error
             0 => call_if_exists!(self.callbacks.on_CDemoStop),  // EDemoCommands::DEM_Stop
@@ -239,7 +245,7 @@ impl Replay {
         Ok(())
     }
 
-    fn handle_packet_by_type(&self, packet: &CDemoPacket) -> Result<()> {
+    fn handle_packet_by_type(&mut self, packet: &CDemoPacket) -> Result<()> {
         let packet_datas = PacketData::from_packet(packet)?;
 
         for d in packet_datas {
@@ -307,6 +313,8 @@ impl Replay {
                     // SVC_Messages::svc_ServerInfo
                     let e = protobuf::parse_from_bytes::<CSVCMsg_ServerInfo>(&d.data)?;
                     call_if_exists!(self.callbacks.on_CSVCMsg_ServerInfo, &e);
+
+                    self.on_server_info(&e);
                 }
                 44 => {
                     // SVC_Messages::svc_CreateStringTable
@@ -342,6 +350,15 @@ impl Replay {
         }
 
         Ok(())
+    }
+
+    fn on_server_info(&mut self, c: &CSVCMsg_ServerInfo) {
+        let max_classes = c.get_max_classes() as f32;
+        self.class_id_size = (max_classes / (2.0f32).ln()) as u32 + 1;
+        debug!("class_id_size: {}", self.class_id_size);
+        debug!("game dir: {}", c.get_game_dir());
+
+        self.game_build = 1; // FIXME
     }
 
     fn on_class_info(&self, mut c: CDemoClassInfo) {

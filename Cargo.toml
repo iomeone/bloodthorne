@@ -7,3 +7,4 @@ authors = ["philippe gaultier <philigaultier@gmail.com>"]
 protobuf = "1.2.1"
 snap = "0.2"
 byteorder = "1.0"
+log = "0.3.6"
