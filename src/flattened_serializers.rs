@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use property_serializers::{PropertySerializer, PropertySerializerTable};
-use dota::netmessages::CSVCMsg_FlattenedSerializer;
+use dota::netmessages::{CSVCMsg_FlattenedSerializer, ProtoFlattenedSerializer_t};
 
 pub struct DataTableProperty {
     field: DataTableField,
@@ -46,5 +46,19 @@ impl FlattenedSerializers {
             property_serializer_table: property_serializer_table,
             build: build,
         }
+    }
+
+    pub fn recurse_table(&self, serializer: &ProtoFlattenedSerializer_t) -> DataTable {
+        let data_table = DataTable {
+            name: self.proto.get_symbols()[serializer.get_serializer_name_sym() as usize]
+                .to_string(),
+            flags: 0,
+            version: serializer.get_serializer_version(),
+            properties: Vec::new(),
+        };
+
+        // let props =
+
+        data_table
     }
 }

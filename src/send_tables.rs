@@ -9,6 +9,8 @@ use replay::Replay;
 use property_serializers::PropertySerializerTable;
 use flattened_serializers::{FlattenedSerializers, DataTable};
 
+struct ToInsert(String, i32, DataTable);
+
 pub fn parse_send_tables(replay: &Replay,
                          mut s: CDemoSendTables,
                          property_serializer_table: PropertySerializerTable)
@@ -24,31 +26,34 @@ pub fn parse_send_tables(replay: &Replay,
     let flattened_serializer =
         protobuf::parse_from_bytes::<CSVCMsg_FlattenedSerializer>(&buffer).map_err(Error::from)?;
 
-    let mut flattened_serializers = FlattenedSerializers::new(flattened_serializer.clone(),
-                                                              property_serializer_table,
-                                                              replay.game_build());
+    let flattened_serializers = FlattenedSerializers::new(flattened_serializer.clone(),
+                                                          property_serializer_table,
+                                                          replay.game_build());
 
-    for serializer in flattened_serializer.get_serializers() {
-        if serializer.has_serializer_name_sym() {
-            // TODO: handle case where i32 < 0 or i32 > get_symbols().len()
-            let index = serializer.get_serializer_name_sym() as usize;
-            let ref name = flattened_serializer.get_symbols()[index];
-            let version = serializer.get_serializer_version();
+    let symbols = flattened_serializer.get_symbols();
+    let to_insert = flattened_serializer.get_serializers()
+        .iter()
+        .filter(|s| {
+            s.has_serializer_name_sym() && s.get_serializer_name_sym() >= 0 &&
+            (s.get_serializer_name_sym() as usize) < symbols.len()
+        })
+        .map(|s| {
+            ToInsert(symbols[s.get_serializer_name_sym() as usize].to_string(),
+                     s.get_serializer_version(),
+                     flattened_serializers.recurse_table(s))
+        })
+        .collect::<Vec<ToInsert>>();
 
-            let mut indexes_to_datatables =
-                flattened_serializers.serializers.entry(name.to_string()).or_insert(HashMap::new());
-            indexes_to_datatables.insert(version, recurse_table(serializer));
-        }
+
+    let mut fs = flattened_serializers;
+    for t in to_insert {
+        let ToInsert(name, version, data_table) = t;
+        let mut indexes_to_datatables = fs.serializers
+            .entry(name)
+            .or_insert(HashMap::new());
+        indexes_to_datatables.insert(version, data_table);
     }
 
-    Ok(flattened_serializers)
-}
 
-fn recurse_table(serializer: &ProtoFlattenedSerializer_t) -> DataTable {
-    DataTable {
-        name: String::new(),
-        flags: -1,
-        version: -1,
-        properties: Vec::new(),
-    }
+    Ok(fs)
 }
