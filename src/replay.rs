@@ -22,6 +22,8 @@ use string_table::{StringTableItem, StringTable, StringTables};
 use outer_message::OuterMessage;
 use packet::PacketData;
 use send_tables;
+use flattened_serializers::DataTable;
+use property_serializers::PropertySerializerTable;
 
 use std::io::{Result, Error, Read, ErrorKind};
 use std::path::Path;
@@ -68,6 +70,7 @@ pub struct Replay {
     index_to_class_name: HashMap<i32, String>,
     class_id_size: u32,
     game_build: u32,
+    serializers: HashMap<String, HashMap<i32, DataTable>>,
 }
 
 impl Replay {
@@ -79,6 +82,7 @@ impl Replay {
             index_to_class_name: HashMap::new(),
             class_id_size: 0,
             game_build: 0,
+            serializers: HashMap::new(),
         })
     }
 
@@ -186,7 +190,7 @@ impl Replay {
             4 => {
                 let c = protobuf::parse_from_bytes::<CDemoSendTables>(&m.data)?;
                 call_if_exists!(self.callbacks.on_CDemoSendTables, &c);
-                self.on_send_tables(c);
+                self.on_send_tables(c)?;
             } // EDemoCommands::DEM_SendTables
             5 => {
                 let c = protobuf::parse_from_bytes::<CDemoClassInfo>(&m.data)?;
@@ -399,7 +403,14 @@ impl Replay {
         // TODO: update baseline info
     }
 
-    fn on_send_tables(&self, s: CDemoSendTables) {
-        let _todo = send_tables::parse_send_tables(s);
+    fn on_send_tables(&mut self, s: CDemoSendTables) -> Result<()> {
+        self.serializers =
+            send_tables::parse_send_tables(self, s, PropertySerializerTable::new())?.serializers;
+
+        Ok(())
+    }
+
+    pub fn game_build(&self) -> u32 {
+        self.game_build
     }
 }

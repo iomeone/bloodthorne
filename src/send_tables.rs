@@ -3,8 +3,15 @@ use dota::netmessages::CSVCMsg_FlattenedSerializer;
 use bitstream::BitStream;
 use std::io::{Result, Error, ErrorKind};
 use protobuf;
+use replay::Replay;
 
-pub fn parse_send_tables(mut s: CDemoSendTables) -> Result<()> {
+use property_serializers::PropertySerializerTable;
+use flattened_serializers::FlattenedSerializers;
+
+pub fn parse_send_tables(replay: &Replay,
+                         mut s: CDemoSendTables,
+                         property_serializer_table: PropertySerializerTable)
+                         -> Result<FlattenedSerializers> {
     let mut bitstream = BitStream::new(s.take_data());
     let size = bitstream.read_u32var()? as usize;
 
@@ -16,6 +23,11 @@ pub fn parse_send_tables(mut s: CDemoSendTables) -> Result<()> {
     let flattened_serializer =
         protobuf::parse_from_bytes::<CSVCMsg_FlattenedSerializer>(&buffer).map_err(Error::from)?;
 
+    let flattened_serializers = FlattenedSerializers::new(flattened_serializer,
+                                                          property_serializer_table,
+                                                          replay.game_build());
+
     // TODO
-    Ok(())
+
+    Ok(flattened_serializers)
 }

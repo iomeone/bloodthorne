@@ -14,6 +14,8 @@ mod packet;
 mod send_tables;
 mod vbkv;
 mod save_game;
+mod flattened_serializers;
+mod property_serializers;
 pub mod callback;
 pub mod dota;
 pub mod replay;
