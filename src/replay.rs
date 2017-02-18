@@ -370,14 +370,21 @@ impl Replay {
         let captures =
             re.captures(game_dir)
                 .ok_or(Error::new(ErrorKind::InvalidData,
-                                  format!("Could not extract game build from game dir: {}",
+                                  format!("Could not capture game build from game dir: {}",
                                           game_dir)))?;
 
-        captures[0]
+        if captures.len() != 2 {
+            return Err(Error::new(ErrorKind::InvalidData,
+                                  format!("Invalid capture count: should be 2, was: {}",
+                                          captures.len())));
+        }
+
+        captures[1]
             .parse::<u32>()
             .or(Err(Error::new(ErrorKind::InvalidData,
-                               format!("Could not extract game build from game dir: {}",
-                                       game_dir))))
+                               format!("Could not parse to number the game build from the \
+                                        capture: {}",
+                                       &captures[0]))))
 
     }
 
