@@ -93,7 +93,10 @@ impl FlattenedSerializers {
                 build: self.build,
             };
 
-            debug!("Add field `{}` to data_table `{}`", f.name, data_table.name);
+            debug!("Add field `{}` of kind `{}` to data_table `{}`",
+                   f.name,
+                   f.kind,
+                   data_table.name);
 
             let prop = DataTableProperty {
                 field: f,
