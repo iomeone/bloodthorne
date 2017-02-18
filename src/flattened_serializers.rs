@@ -77,6 +77,8 @@ impl FlattenedSerializers {
                 String::new()
             };
 
+            // TODO: Fill the serializer
+
             let f = DataTableField {
                 name: self.proto.get_symbols()[field.get_var_name_sym() as usize].to_string(), // TODO: bound check
                 index: -1,
@@ -91,10 +93,15 @@ impl FlattenedSerializers {
                 build: self.build,
             };
 
+            debug!("Add field `{}` to data_table `{}`", f.name, data_table.name);
+
             let prop = DataTableProperty {
                 field: f,
                 table: self.get_data_table(field),
             };
+
+            // TODO: Adjust array fields
+
 
             data_table.properties.push(prop);
         }
