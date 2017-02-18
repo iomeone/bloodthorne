@@ -26,7 +26,6 @@ use std::path::Path;
 use std::fs::File;
 use std::string::String;
 use std::vec::Vec;
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::f32;
 
@@ -63,8 +62,8 @@ macro_rules! call_if_exists {
 pub struct Replay {
     bytes: Vec<u8>,
     pub callbacks: Callbacks,
-    string_tables: RefCell<StringTables>,
-    index_to_class_name: RefCell<HashMap<i32, String>>,
+    string_tables: StringTables,
+    index_to_class_name: HashMap<i32, String>,
     class_id_size: u32,
     game_build: u32,
 }
@@ -74,8 +73,8 @@ impl Replay {
         Ok(Replay {
             bytes: bytes,
             callbacks: Callbacks::new(),
-            string_tables: RefCell::new(StringTables::new()),
-            index_to_class_name: RefCell::new(HashMap::new()),
+            string_tables: StringTables::new(),
+            index_to_class_name: HashMap::new(),
             class_id_size: 0,
             game_build: 0,
         })
@@ -117,7 +116,7 @@ impl Replay {
         }
     }
 
-    fn on_create_string_table(&self, s: &CSVCMsg_CreateStringTable) -> Result<()> {
+    fn on_create_string_table(&mut self, s: &CSVCMsg_CreateStringTable) -> Result<()> {
         let buf = s.get_string_data();
         let mut data: Vec<u8> = buf.to_vec();
 
@@ -136,11 +135,10 @@ impl Replay {
                                                               s.get_user_data_size())?;
 
         {
-            let mut tables = self.string_tables.borrow_mut();
-            let mut table = StringTable::new(s, tables.next_index());
-            tables.incr_next_index();
+            let mut table = StringTable::new(s, self.string_tables.next_index());
+            self.string_tables.incr_next_index();
             table.add_items(table_items);
-            tables.add_table(table);
+            self.string_tables.add_table(table);
         }
 
         // TODO: "instancebaseline"
@@ -148,9 +146,8 @@ impl Replay {
         Ok(())
     }
 
-    fn on_update_string_table(&self, s: &CSVCMsg_UpdateStringTable) -> Result<()> {
-        let mut tables = self.string_tables.borrow_mut();
-        let table = tables.get_table(s.get_table_id());
+    fn on_update_string_table(&mut self, s: &CSVCMsg_UpdateStringTable) -> Result<()> {
+        let table = self.string_tables.get_table(s.get_table_id());
         if table.is_none() {
             return Err(Error::new(ErrorKind::InvalidData, "Update non-existent string table"));
         }
@@ -361,11 +358,10 @@ impl Replay {
         self.game_build = 1; // FIXME
     }
 
-    fn on_class_info(&self, mut c: CDemoClassInfo) {
-        let mut index_to_class_name = self.index_to_class_name.borrow_mut();
+    fn on_class_info(&mut self, mut c: CDemoClassInfo) {
         let mut classes = c.take_classes();
         for class in classes.iter_mut() {
-            index_to_class_name.insert(class.get_class_id(), class.take_network_name());
+            self.index_to_class_name.insert(class.get_class_id(), class.take_network_name());
 
             // TODO: check if class info already exists from send tables
         }
