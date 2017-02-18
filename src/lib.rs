@@ -16,6 +16,8 @@ mod vbkv;
 mod save_game;
 mod flattened_serializers;
 mod property_serializers;
+mod properties;
+
 pub mod callback;
 pub mod dota;
 pub mod replay;
