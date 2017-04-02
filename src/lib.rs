@@ -1,6 +1,7 @@
 
 extern crate protobuf;
 extern crate byteorder;
+extern crate bit_vec;
 
 #[macro_use]
 extern crate log;
