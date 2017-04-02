@@ -17,6 +17,8 @@ mod save_game;
 mod flattened_serializers;
 mod property_serializers;
 mod properties;
+mod fieldpath;
+mod huffman_encoding;
 
 pub mod callback;
 pub mod dota;

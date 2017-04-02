@@ -44,7 +44,6 @@ pub fn parse_send_tables(replay: &Replay,
         })
         .collect::<Vec<ToInsert>>();
 
-
     let mut fs = flattened_serializers;
     for t in to_insert {
         let ToInsert(name, version, data_table) = t;
@@ -53,7 +52,6 @@ pub fn parse_send_tables(replay: &Replay,
             .or_insert(HashMap::new());
         indexes_to_datatables.insert(version, data_table);
     }
-
 
     Ok(fs)
 }
