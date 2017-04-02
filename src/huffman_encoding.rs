@@ -5,12 +5,13 @@ use std::cmp::Ordering;
 
 type Node = Option<Box<HuffmanNode>>;
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq, Debug)]
 struct HuffmanNode {
     left: Node,
     right: Node,
+    letter: Option<char>,
     count: usize,
-    value: BitVec,
+    value: bool,
 }
 
 // The priority queue depends on `Ord`.
@@ -31,21 +32,23 @@ impl PartialOrd for HuffmanNode {
 }
 
 impl HuffmanNode {
-    fn new(count: usize) -> HuffmanNode {
+    fn new(letter: char, count: usize) -> HuffmanNode {
         HuffmanNode {
             left: None,
             right: None,
             count: count,
-            value: BitVec::new(),
+            letter: Some(letter),
+            value: false,
         }
     }
 
     fn from(text: &str) -> HuffmanNode {
         let frequencies_by_letter = get_frequencies(text);
         let mut priority_queue = make_priority_queue(&frequencies_by_letter);
-        HuffmanNode::build_tree(&mut priority_queue)
+        let mut tree = HuffmanNode::build_tree(&mut priority_queue);
+        HuffmanNode::assign_bits(&mut tree);
 
-        // TODO: assign bits
+        tree
     }
 
     fn build_tree(priority_queue: &mut BinaryHeap<HuffmanNode>) -> HuffmanNode {
@@ -58,8 +61,9 @@ impl HuffmanNode {
             let parent = HuffmanNode {
                 left: Some(Box::new(first)),
                 right: Some(Box::new(second)),
+                letter: None,
                 count: first_count + second_count,
-                value: BitVec::new(),
+                value: false,
             };
             priority_queue.push(parent);
         }
@@ -67,25 +71,23 @@ impl HuffmanNode {
         priority_queue.pop().unwrap()
     }
 
-    // fn assign_bits(node: &mut HuffmanNode) {
-    //     if let Some(ref left) = node.left {
-    //         left.value.push(false);
-    //         HuffmanNode::assign_bits(&mut left);
-    //     }
-    //     if let Some(ref right) = node.right {
-    //         right.value.push(true);
-    //         HuffmanNode::assign_bits(&mut right);
-    //     }
-    // }
+    fn assign_bits(node: &mut HuffmanNode) {
+        if let Some(ref mut left) = node.left {
+            left.value = false;
+            HuffmanNode::assign_bits(left);
+        }
+        if let Some(ref mut right) = node.right {
+            right.value = true;
+            HuffmanNode::assign_bits(right);
+        }
+    }
 }
-
-type frequency_pair = Option<(char, usize)>;
 
 fn make_priority_queue(frequencies: &HashMap<char, usize>) -> BinaryHeap<HuffmanNode> {
     let mut binary_heap = BinaryHeap::new();
 
     for (key, value) in frequencies.iter() {
-        binary_heap.push(HuffmanNode::new(*value));
+        binary_heap.push(HuffmanNode::new(*key, *value));
     }
 
     binary_heap
@@ -104,8 +106,7 @@ fn get_frequencies(text: &str) -> HashMap<char, usize> {
 
 #[cfg(test)]
 mod tests {
-    use huffman_encoding::get_frequencies;
-    use std::collections::HashMap;
+    use huffman_encoding::{get_frequencies, HuffmanNode};
 
     #[test]
     fn test_get_frequencies() {
@@ -114,5 +115,21 @@ mod tests {
         assert_eq!(frequencies.get(&'e'), Some(&1));
         assert_eq!(frequencies.get(&'l'), Some(&2));
         assert_eq!(frequencies.get(&'o'), Some(&1));
+    }
+
+    #[test]
+    fn test_huffman_tree_from_text() {
+        let root = HuffmanNode::from("abbcccc");
+
+        let right = root.right.unwrap();
+        assert_eq!(right.letter, Some('c'));
+
+        let left = *(root.left.unwrap());
+
+        let left_right = left.right.unwrap();
+        assert_eq!(left_right.letter, Some('b'));
+
+        let left_left = left.left.unwrap();
+        assert_eq!(left_left.letter, Some('a'));
     }
 }
